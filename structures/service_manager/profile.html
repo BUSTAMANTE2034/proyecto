@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Perfil de Encargado</title>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f7fc;
+      }
+      .profile-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+      .profile-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 600px;
+      }
+      .profile-header img {
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        margin-right: 20px;
+      }
+      .profile-header div {
+        flex-grow: 1;
+      }
+      .profile-header .name {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+      }
+      .profile-header .email {
+        font-size: 1.2rem;
+        color: #777;
+      }
+      .profile-header .status {
+        font-size: 1rem;
+        color: #777;
+      }
+      .info-item {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 600px;
+        margin-bottom: 10px;
+        background-color: #fff;
+        padding: 10px;
+        border-radius: 10px;
+      }
+      .info-item label {
+        font-weight: bold;
+      }
+      .info-value {
+        font-size: 1rem;
+        color: #555;
+      }
+      .btn-edit {
+        background-color: #007bff;
+        color: white;
+        padding: 5px 15px;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        border-radius: 5px;
+      }
+      .password-edit-form {
+        display: none;
+        margin-top: 20px;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 600px;
+      }
+      .password-edit-form .info-item {
+        margin-bottom: 20px;
+      }
+      .password-edit-form input {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+      .btn-submit {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        border-radius: 5px;
+      }
+      .btn-cancel {
+        background-color: #dc3545;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        border-radius: 5px;
+      }
+      .btn-cancel:hover,
+      .btn-submit:hover {
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="profile-container">
+      <!-- Header Section -->
+      <div class="profile-header">
+        <img src="../../images/good.png" alt="Profile Image" />
+        <div>
+          <div class="name" id="profile-name">Nombre del Encargado</div>
+          <div class="email" id="profile-email">Correo: encargado@ejemplo.com</div>
+        </div>
+      </div>
+
+      <!-- Encargado Info Section 
+      <div class="info-item">
+        <label for="correo">Correo Electrónico:</label>
+        <div id="profile-email" class="profile-email">encargado@ejemplo.com</div>
+      </div>-->
+
+      <div class="info-item">
+        <label for="tipo_usuario">Tipo de Usuario:</label>
+        <div id="profile-tipo_usuario" class="info-value">Administrador</div>
+      </div>
+
+      <div class="info-item">
+        <label for="password">Contraseña:</label>
+        <div id="profile-password" class="info-value">********</div>
+        <button class="btn-edit" id="edit-password-btn">Editar Contraseña</button>
+      </div>
+
+      <div class="password-edit-form" id="password-edit-form">
+        <div class="info-item">
+          <label for="old-password">Contraseña Actual:</label>
+          <input type="password" id="old-password" placeholder="Ingresa la contraseña actual" />
+        </div>
+
+        <div class="info-item">
+          <label for="new-password">Nueva Contraseña:</label>
+          <input type="password" id="new-password" placeholder="Ingresa la nueva contraseña" />
+        </div>
+
+        <div class="info-item">
+          <label for="confirm-password">Confirmar Nueva Contraseña:</label>
+          <input type="password" id="confirm-password" placeholder="Confirma la nueva contraseña" />
+        </div>
+
+        <button id="save-password-btn" class="btn-submit">Guardar Cambios</button>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Obtener el id_encargado de la URL
+        const urlParams = new URLSearchParams(window.top.location.search);
+        const idEncargado = urlParams.get('id_encargado'); // Obtiene el valor de 'id_encargado'
+        console.log('ID Encargado:', idEncargado);  // Asegúrate de que esté obteniendo el valor correctamente
+
+        if (!idEncargado) {
+          console.error('ID de Encargado no encontrado en la URL.');
+          return; // Si no se encuentra el ID, no hace nada
+        }
+
+        // Ahora usas este ID para hacer la solicitud
+        fetch(`https://socialitec2034.pythonanywhere.com/encargados/${idEncargado}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              const encargado = data.data;
+              document.getElementById('profile-name').innerText = encargado.nombre;
+              document.getElementById('profile-email').innerText = encargado.correo;
+              document.getElementById('profile-tipo_usuario').innerText = "Encargado";
+              document.getElementById('profile-password').innerText = '********'; // Contraseña oculta
+            } else {
+              console.error('Error al cargar el encargado');
+            }
+          })
+          .catch(error => console.error('Error al hacer la solicitud:', error));
+
+        // Funcionalidad de edición de contraseña
+        const editPasswordBtn = document.getElementById('edit-password-btn');
+        const passwordEditForm = document.getElementById('password-edit-form');
+        const savePasswordBtn = document.getElementById('save-password-btn');
+
+        editPasswordBtn.addEventListener('click', function () {
+          passwordEditForm.style.display = 'block'; // Mostrar el formulario de edición de contraseña
+        });
+
+        savePasswordBtn.addEventListener('click', function () {
+          const oldPassword = document.getElementById('old-password').value;
+          const newPassword = document.getElementById('new-password').value;
+          const confirmPassword = document.getElementById('confirm-password').value;
+
+          if (newPassword !== confirmPassword) {
+            alert('Las contraseñas no coinciden.');
+            return;
+          }
+
+          // Verificar la contraseña actual
+          fetch(`https://socialitec2034.pythonanywhere.com/encargados/${idEncargado}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.status === 'success') {
+                const encargado = data.data;
+
+                if (oldPassword !== encargado.contrasena) {
+                  alert('La contraseña actual es incorrecta.');
+                  return;
+                }
+
+                // Actualizar la contraseña
+                fetch(`https://socialitec2034.pythonanywhere.com/encargados/${idEncargado}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    contrasena: newPassword
+                  })
+                })
+                  .then(response => response.json())
+                  .then(data => {
+                    if (data.status === 'success') {
+                      alert('Contraseña actualizada con éxito.');
+                      passwordEditForm.style.display = 'none'; // Ocultar el formulario de edición
+                    } else {
+                      alert('Error al actualizar la contraseña.');
+                    }
+                  })
+                  .catch(error => console.error('Error al actualizar la contraseña:', error));
+              } else {
+                alert('No se pudo verificar la contraseña actual.');
+              }
+            });
+        });
+      });
+    </script>
+  </body>
+</html>
