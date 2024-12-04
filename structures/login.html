@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles/login.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <title>Iniciar Sesión</title>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Left Section -->
+      <div class="left-section">
+        <button class="back-button" onclick="window.history.back()">
+          <img src="../images/Social ITEC ICON.png" alt="Volver" class="back-icon" />
+          Volver
+        </button>
+        <div class="slogan">
+          <h1 style="font-size: 25px; font-weight: bold">¡SERVICIO SOCIAL!</h1>
+        </div>
+        <img src="../images/Logo_TECnm.jpg" alt="Logo TecNM" class="left-image" />
+      </div>
+
+      <!-- Right Section -->
+      <div class="right-section">
+        <h2 class="title">Iniciar sesión</h2>
+        <form class="login-form" id="login-form" onsubmit="return false;">
+          <label for="email" class="form-label">Correo electrónico</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="Ingresa tu correo"
+            class="form-input"
+            required
+          />
+
+          <label for="password" class="form-label">Contraseña</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Ingresa tu contraseña"
+            class="form-input"
+            required
+          />
+
+          <button type="submit" class="btn-submit">Iniciar</button>
+
+          <a href="#" class="forgot-password" id="forgot-password-link">¿Olvidaste tu contraseña?</a>
+        </form>
+        <p id="error-message" class="form-error"></p>
+      </div>
+    </div>
+
+    <!-- Modal para Olvidar Contraseña -->
+    <div id="forgot-password-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <h3>Restablecer Contraseña</h3>
+        <p>Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</p>
+        <form id="forgot-password-form">
+          <label for="forgot-email" class="form-label">Correo Electrónico</label>
+          <input
+            type="email"
+            id="forgot-email"
+            name="forgot-email"
+            placeholder="Ingresa tu correo"
+            class="form-input"
+            required
+          />
+          <div class="modal-actions">
+            <button type="button" id="close-modal" class="btn-cancel">Cancelar</button>
+            <button type="submit" class="btn-submit">Enviar</button>
+          </div>
+        </form>
+        <p id="success-message" style="display: none;">Correo enviado correctamente. Revisa tu bandeja de entrada.</p>
+      </div>
+    </div>
+
+    <!-- Enlaza el script de login al final del body -->
+    <script src="../scripts/login.js"></script>
+  </body>
+</html>

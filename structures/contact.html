@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles/contact.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>Contacto - SocialITEC</title>
+    <style>
+      /* General Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      /* Header */
+      .header {
+        background-color: #002855; /* Fondo principal */
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+      }
+
+      .header__logo {
+        display: flex;
+        align-items: center;
+      }
+
+      .header__logo-img {
+        height: 3rem;
+        margin-right: 0.5rem;
+      }
+
+      .header__title {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .header__nav {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .header__nav-link {
+        color: white;
+        text-decoration: none;
+        font-size: 1rem;
+        transition: color 0.3s ease;
+      }
+
+      .header__nav-link:hover,
+      .header__nav-link.active {
+        color: #00509e; /* Hover color */
+      }
+
+      /* Main Section */
+      .main {
+        padding: 20px;
+        text-align: center;
+      }
+
+      .contact {
+        background-color: #f7f7f7;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 800px;
+        margin: 20px auto;
+      }
+
+      .contact__title {
+        font-size: 28px;
+        margin-bottom: 10px;
+        color: #002855;
+      }
+
+      .contact__description {
+        margin-bottom: 20px;
+        font-size: 16px;
+        color: #555;
+      }
+
+      .contact__info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        justify-items: center;
+      }
+
+      .contact__item {
+        background: white;
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .contact__icon {
+        height: 50px;
+        margin-bottom: 10px;
+      }
+
+      .contact__text {
+        font-size: 16px;
+        margin: 0;
+      }
+
+      .contact__text a {
+        color: #00509e;
+        text-decoration: none;
+      }
+
+      .contact__text a:hover {
+        text-decoration: underline;
+      }
+
+      /* Footer */
+      .footer {
+        background-color: #002855;
+        color: white;
+        text-align: center;
+        padding: 10px 20px;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+      }
+
+      .footer__nav {
+        margin-top: 10px;
+      }
+
+      .footer__nav-link {
+        color: white;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+
+      .footer__nav-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header" class="header">
+      <div class="header__logo">
+        <img
+          src="../images/Social ITEC ICON.png"
+          alt="Document Management"
+          class="header__logo-img"
+        />
+        <div class="header__title">SocialITEC</div>
+      </div>
+      <nav class="header__nav">
+        <a href="landing-page.html" class="header__nav-link">HOME</a>
+        <a href="login.html" class="header__nav-link">Iniciar Sesión</a>
+        <a href="social_service.html" class="header__nav-link"
+          >Servicio Social</a
+        >
+        <a href="tecnm_leon.html" class="header__nav-link">TecNM León</a>
+      </nav>
+    </header>
+
+    <main id="main" class="main">
+      <section id="contact" class="contact">
+        <h2 class="contact__title">Contáctanos</h2>
+        <p class="contact__description">
+          ¿Tienes dudas o comentarios? Estamos aquí para ayudarte.
+        </p>
+        <div class="contact__info">
+          <div class="contact__item">
+            <img
+              src="../images/phone.svg"
+              alt="Teléfono"
+              class="contact__icon"
+            />
+            <p class="contact__text">
+              Teléfono: <a href="tel:+524771234567">477 123 4567</a>
+            </p>
+          </div>
+          <div class="contact__item">
+            <img src="../images/email.svg" alt="Correo" class="contact__icon" />
+            <p class="contact__text">
+              Correo:
+              <a href="mailto:socialitec@gmail.com">socialitec@gmail.com</a>
+            </p>
+          </div>
+          <div class="contact__item">
+            <img
+              src="../images/facebook.png"
+              alt="Facebook"
+              class="contact__icon"
+            />
+            <p class="contact__text">
+              Facebook:
+              <a href="https://facebook.com/SocialITEC" target="_blank"
+                >SocialITEC</a
+              >
+            </p>
+          </div>
+          <div class="contact__item">
+            <img
+              src="../images/logotipo-de-instagram.png"
+              alt="Instagram"
+              class="contact__icon"
+            />
+            <p class="contact__text">
+              Instagram:
+              <a href="https://instagram.com/social.itec" target="_blank"
+                >@social.itec</a
+              >
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer id="footer" class="footer">
+      <p>&copy; 2024 SocialITEC. Todos los derechos reservados.</p>
+      <div class="footer__nav">
+        <a href="about.html" class="footer__nav-link">Nosotros</a>
+        <a href="contact.html" class="footer__nav-link">Contacto</a>
+      </div>
+    </footer>
+  </body>
+</html>

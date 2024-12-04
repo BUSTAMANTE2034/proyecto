@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Responsables de Programa</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Asegúrate de que el archivo styles.css esté en la misma carpeta -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <h2>Lista de Responsables de Programa</h2>
+      <div class="header-actions">
+        <input type="text" id="search" placeholder="Buscar responsable...">
+        <button id="search-btn">🔍</button>
+        <button id="create-btn">+ Crear</button>
+      </div>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body">
+      <table id="responsables-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Cargo</th>
+            <th>Institución</th>
+            <th>Correo</th>
+            <th>Teléfono</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filas dinámicas generadas por JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal para Crear/Editar Responsable -->
+  <div id="responsable-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="modal-title">Crear Responsable</h3>
+      <form id="responsable-form">
+        <input type="hidden" id="responsable-id">
+        <label for="nombre_responsable">Nombre</label>
+        <input type="text" id="nombre_responsable" required>
+        <label for="cargo">Cargo</label>
+        <input type="text" id="cargo" required>
+        <label for="id_institucion">Institución</label>
+        <select id="id_institucion" required>
+          <!-- Opciones dinámicas cargadas desde la API -->
+        </select>
+        <label for="correo">Correo</label>
+        <input type="email" id="correo" required>
+        <label for="numero_telefono">Teléfono</label>
+        <input type="text" id="numero_telefono">
+        <label for="rf">RF</label>
+        <input type="text" id="rf" required>
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación -->
+  <div id="delete-confirmation" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Confirmar Eliminación</h3>
+      <p>¿Está seguro de que desea eliminar este responsable?</p>
+      <button id="confirm-delete-btn">Eliminar</button>
+      <button id="cancel-delete-btn">Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    const apiBaseUrl = 'https://socialitec2034.pythonanywhere.com';
+    const responsablesApiUrl = `${apiBaseUrl}/responsables`;
+    const institucionesApiUrl = `${apiBaseUrl}/instituciones`;
+
+    // Función para cargar y mostrar los responsables en la tabla
+    function loadResponsables() {
+      $.get(responsablesApiUrl, function (response) {
+        if (response.status === 'success') {
+          const responsables = response.data;
+          const tableBody = $('#responsables-table tbody');
+          tableBody.empty(); // Limpia la tabla antes de agregar nuevas filas
+
+          // Itera sobre los responsables y crea una fila para cada uno
+          responsables.forEach(responsable => {
+            const row = `
+              <tr data-id="${responsable.id_responsable}">
+                <td>${responsable.nombre_responsable}</td>
+                <td>${responsable.cargo}</td>
+                <td>${responsable.nombre_institucion || ''}</td>
+                <td>${responsable.correo}</td>
+                <td>${responsable.numero_telefono || ''}</td>
+                <td>
+                  <button class="actions-btn">⋮</button>
+                  <div class="actions-menu" style="display: none;">
+                    <button class="edit-btn">Editar</button>
+                    <button class="delete-btn">Eliminar</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+        } else {
+          console.error('Error al obtener los responsables:', response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar responsables:', textStatus, errorThrown);
+      });
+    }
+
+    // Función para cargar las instituciones en el select del formulario
+    function loadInstitucionesSelect(selectedId = null) {
+      $.get(institucionesApiUrl, function (response) {
+        if (response.status === 'success') {
+          const instituciones = response.data;
+          const institucionSelect = $('#id_institucion');
+          institucionSelect.empty();
+          institucionSelect.append('<option value="" disabled selected>Seleccione una institución</option>');
+          instituciones.forEach(institucion => {
+            const option = `<option value="${institucion.id_institucion}">${institucion.nombre}</option>`;
+            institucionSelect.append(option);
+          });
+          if (selectedId) {
+            institucionSelect.val(selectedId);
+          }
+        } else {
+          console.error('Error al obtener las instituciones:', response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar instituciones:', textStatus, errorThrown);
+      });
+    }
+
+    // Funciones para manejar la edición y eliminación de responsables
+    function openEditModal(responsableId) {
+      $.get(`${responsablesApiUrl}/${responsableId}`, function (response) {
+        if (response.status === 'success') {
+          const responsable = response.data;
+          // Completa los campos del modal con los datos del responsable
+          $('#modal-title').text('Editar Responsable');
+          $('#responsable-id').val(responsable.id_responsable);
+          $('#nombre_responsable').val(responsable.nombre_responsable);
+          $('#cargo').val(responsable.cargo);
+          $('#correo').val(responsable.correo);
+          $('#numero_telefono').val(responsable.numero_telefono);
+          $('#rf').val(responsable.rf);
+          loadInstitucionesSelect(responsable.id_institucion);
+          $('#responsable-modal').show();
+        } else {
+          console.error('Error al obtener los datos del responsable:', response.message);
+          alert('Error al obtener los datos del responsable: ' + response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error en la solicitud:', textStatus, errorThrown);
+        alert('Error en la solicitud: ' + textStatus);
+      });
+    }
+
+    function openDeleteConfirmation(responsableId) {
+      $('#delete-confirmation').show();
+      $('#confirm-delete-btn').off('click').on('click', function () {
+        $.ajax({
+          url: `${responsablesApiUrl}/${responsableId}`,
+          type: 'DELETE',
+          success: function (response) {
+            if (response.status === 'success') {
+              $('#delete-confirmation').hide();
+              loadResponsables();
+              alert('Responsable eliminado exitosamente.');
+            } else {
+              console.error('Error al eliminar el responsable:', response.message);
+              alert('Error al eliminar el responsable: ' + response.message);
+            }
+          },
+          error: function (jqXHR, textStatus, errorThrown) {
+            console.error('Error al eliminar el responsable:', textStatus, errorThrown);
+            alert('Error al eliminar el responsable: ' + textStatus);
+          }
+        });
+      });
+      $('#cancel-delete-btn').on('click', function () {
+        $('#delete-confirmation').hide();
+      });
+    }
+
+    // Función para inicializar la tabla de responsables
+    $(document).ready(function () {
+      loadResponsables();
+
+      $('#search-btn').on('click', function () {
+        const query = $('#search').val().toLowerCase();
+        $('#responsables-table tbody tr').filter(function () {
+          $(this).toggle($(this).text().toLowerCase().indexOf(query) > -1);
+        });
+      });
+
+      $('#create-btn').on('click', function () {
+        $('#modal-title').text('Crear Responsable');
+        $('#responsable-id').val('');
+        $('#nombre_responsable').val('');
+        $('#cargo').val('');
+        $('#correo').val('');
+        $('#numero_telefono').val('');
+        $('#rf').val('');
+        loadInstitucionesSelect();
+        $('#responsable-modal').show();
+      });
+
+      $('#cancel-btn').on('click', function () {
+        $('#responsable-modal').hide();
+      });
+
+      $('#responsable-form').on('submit', function (event) {
+        event.preventDefault();
+
+        const responsableId = $('#responsable-id').val();
+        const responsableData = {
+          nombre_responsable: $('#nombre_responsable').val(),
+          cargo: $('#cargo').val(),
+          correo: $('#correo').val(),
+          numero_telefono: $('#numero_telefono').val(),
+          rf: $('#rf').val(),
+          id_institucion: $('#id_institucion').val()
+        };
+
+        if (responsableId) {
+          // Actualizar responsable existente
+          $.ajax({
+            url: `${responsablesApiUrl}/${responsableId}`,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(responsableData),
+            success: function (response) {
+              if (response.status === 'success') {
+                $('#responsable-modal').hide();
+                loadResponsables();
+                alert('Responsable actualizado exitosamente.');
+              } else {
+                console.error('Error al actualizar el responsable:', response.message);
+                alert('Error al actualizar el responsable: ' + response.message);
+              }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        } else {
+          // Crear nuevo responsable
+          $.ajax({
+            url: responsablesApiUrl,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(responsableData),
+            success: function (response) {
+              if (response.status === 'success') {
+                $('#responsable-modal').hide();
+                loadResponsables();
+                alert('Responsable creado exitosamente.');
+              } else {
+                console.error('Error al crear el responsable:', response.message);
+                alert('Error al crear el responsable: ' + response.message);
+              }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        }
+      });
+
+      // Eventos para botones en cada fila usando delegación de eventos
+      $('#responsables-table').on('click', '.actions-btn', function () {
+        $(this).next('.actions-menu').toggle();
+      });
+
+      $('#responsables-table').on('click', '.edit-btn', function () {
+        const responsableId = $(this).closest('tr').data('id');
+        openEditModal(responsableId);
+      });
+
+      $('#responsables-table').on('click', '.delete-btn', function () {
+        const responsableId = $(this).closest('tr').data('id');
+        openDeleteConfirmation(responsableId);
+      });
+    });
+  </script>
+</body>
+</html>

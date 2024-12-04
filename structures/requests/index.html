@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lista de Solicitudes</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Asegúrate de que el archivo styles.css esté en la misma carpeta -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <!-- Sección para Solicitudes -->
+  <div class="card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <h2>Lista de Solicitudes</h2>
+      <div class="header-actions">
+        <input type="text" id="search" placeholder="Buscar solicitud...">
+        <button id="search-btn">🔍</button>
+        <button id="create-btn">+ Crear Solicitud</button>
+      </div>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body">
+      <table id="solicitudes-table">
+        <thead>
+          <tr>
+            <th>ID Solicitud</th>
+            <th>Nombre Alumno</th>
+            <th>Institución</th>
+            <th>Programa</th>
+            <th>Descripción del Programa</th>
+            <th>Estatus</th>
+            <th>Status Realización</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filas dinámicas generadas por JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal para Crear/Editar Solicitud -->
+  <div id="solicitud-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="modal-title">Crear Solicitud</h3>
+      <form id="solicitud-form">
+        <input type="hidden" id="solicitud-id">
+        
+        <label for="id_estudiante">ID Estudiante</label>
+        <input type="number" id="id_estudiante" name="id_estudiante" required>
+        
+        <label for="id_institucion">ID Institución</label>
+        <input type="number" id="id_institucion" name="id_institucion" required>
+        
+        <label for="fecha_solicitud">Fecha de Solicitud</label>
+        <input type="date" id="fecha_solicitud" name="fecha_solicitud" required>
+        
+        <label for="estatus">Estatus</label>
+        <select id="estatus" name="estatus">
+          <option value="pendiente">Pendiente</option>
+          <option value="aprobada">Aprobada</option>
+          <option value="rechazada">Rechazada</option>
+        </select>
+        
+        <label for="status_realizacion">Status de Realización</label>
+        <select id="status_realizacion" name="status_realizacion">
+          <option value="sin_iniciar">Sin Iniciar</option>
+          <option value="en_progreso">En Progreso</option>
+          <option value="realizado">Realizado</option>
+        </select>
+        
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación de Solicitud -->
+  <div id="delete-confirmation" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Confirmar Eliminación</h3>
+      <p>¿Está seguro de que desea eliminar esta solicitud?</p>
+      <button id="confirm-delete-btn">Eliminar</button>
+      <button id="cancel-delete-btn">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Modal para Gestionar Documentos -->
+  <div id="documentos-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="documentos-modal-title">Gestionar Documentos</h3>
+      <form id="documento-form">
+        <input type="hidden" id="documento-id">
+        <input type="hidden" id="documento-solicitud-id" name="id_solicitud">
+        
+        <label for="fecha_subida">Fecha de Subida</label>
+        <input type="date" id="fecha_subida" name="fecha_subida" required>
+        
+        <label for="archivo_documento">Archivo (PDF)</label>
+        <input type="file" id="archivo_documento" name="archivo" accept=".pdf" required>
+        
+        <label for="status_documento">Status</label>
+        <select id="status_documento" name="status">
+          <option value="pendiente">Pendiente</option>
+          <option value="aprobada">Aprobada</option>
+          <option value="rechazada">Rechazada</option>
+        </select>
+        
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-documento-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación de Documento -->
+  <div id="delete-confirmation-documento" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Confirmar Eliminación</h3>
+      <p>¿Está seguro de que desea eliminar este documento?</p>
+      <button id="confirm-delete-documento-btn">Eliminar</button>
+      <button id="cancel-delete-documento-btn">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Modal para Gestionar Cartas de Liberación -->
+  <div id="cartas-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="cartas-modal-title">Gestionar Cartas de Liberación</h3>
+      <form id="carta-form">
+        <input type="hidden" id="carta-id">
+        <input type="hidden" id="carta-solicitud-id" name="id_solicitud">
+        
+        <label for="fecha_emision">Fecha de Emisión</label>
+        <input type="date" id="fecha_emision" name="fecha_emision" required>
+        
+        <label for="archivo_carta">Archivo (PDF)</label>
+        <input type="file" id="archivo_carta" name="archivo" accept=".pdf" required>
+        
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-carta-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación de Carta de Liberación -->
+  <div id="delete-confirmation-carta" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Confirmar Eliminación</h3>
+      <p>¿Está seguro de que desea eliminar esta carta de liberación?</p>
+      <button id="confirm-delete-carta-btn">Eliminar</button>
+      <button id="cancel-delete-carta-btn">Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    const solicitudesApiUrl = 'https://socialitec2034.pythonanywhere.com/solicitudes';
+    const documentosApiUrl = 'https://socialitec2034.pythonanywhere.com/documentos';
+    const cartasApiUrl = 'https://socialitec2034.pythonanywhere.com/cartas_de_liberacion';
+
+    // Función para cargar y mostrar las solicitudes en la tabla
+    function loadSolicitudes() {
+      $.get(solicitudesApiUrl, function (response) {
+        if (response.status === 'success') {
+          const solicitudes = response.data;
+          const tableBody = $('#solicitudes-table tbody');
+          tableBody.empty(); // Limpia la tabla antes de agregar nuevas filas
+
+          // Itera sobre las solicitudes y crea una fila para cada una
+          solicitudes.forEach(solicitud => {
+            const row = `
+              <tr data-id="${solicitud.id_solicitud}">
+                <td>${solicitud.id_solicitud}</td>
+                <td>${solicitud.nombre_estudiante || ''}</td>
+                <td>${solicitud.nombre_institucion || ''}</td>
+                <td>${solicitud.nombre_programa || ''}</td>
+                <td>${solicitud.descripcion_programa || ''}</td>
+                <td>${solicitud.estatus || ''}</td>
+                <td>${solicitud.status_realizacion || ''}</td>
+                <td>
+                  <button class="actions-btn">⋮</button>
+                  <div class="actions-menu" style="display: none;">
+                    <button class="edit-btn">Editar</button>
+                    <button class="delete-btn">Eliminar</button>
+                    <button class="manage-docs-btn">Gestionar Documentos</button>
+                    <button class="manage-carta-btn">Gestionar Cartas</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+        } else {
+          console.error('Error al obtener las solicitudes:', response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar solicitudes:', textStatus, errorThrown);
+      });
+    }
+
+    // Funciones para manejar la edición y eliminación de solicitudes
+    function openEditModal(solicitudId) {
+      $.get(`${solicitudesApiUrl}/${solicitudId}`, function (response) {
+        if (response.status === 'success') {
+          const solicitud = response.data;
+          // Completa los campos del modal con los datos de la solicitud
+          $('#modal-title').text('Editar Solicitud');
+          $('#solicitud-id').val(solicitud.id_solicitud);
+          $('#id_estudiante').val(solicitud.id_estudiante);
+          $('#id_institucion').val(solicitud.id_institucion);
+          $('#fecha_solicitud').val(solicitud.fecha_solicitud);
+          $('#estatus').val(solicitud.estatus);
+          $('#status_realizacion').val(solicitud.status_realizacion);
+          $('#solicitud-modal').show();
+        } else {
+          console.error('Error al obtener los datos de la solicitud:', response.message);
+          alert('Error al obtener los datos de la solicitud: ' + response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error en la solicitud:', textStatus, errorThrown);
+        alert('Error en la solicitud: ' + textStatus);
+      });
+    }
+
+    function openDeleteConfirmation(solicitudId) {
+      $('#delete-confirmation').show();
+      $('#confirm-delete-btn').off('click').on('click', function () {
+        $.ajax({
+          url: `${solicitudesApiUrl}/${solicitudId}`,
+          type: 'DELETE',
+          success: function (response) {
+            if (response.status === 'success') {
+              $('#delete-confirmation').hide();
+              loadSolicitudes();
+              alert('Solicitud eliminada exitosamente.');
+            } else {
+              console.error('Error al eliminar la solicitud:', response.message);
+              alert('Error al eliminar la solicitud: ' + response.message);
+            }
+          },
+          error: function (jqXHR, textStatus, errorThrown) {
+            console.error('Error al eliminar la solicitud:', textStatus, errorThrown);
+            alert('Error al eliminar la solicitud: ' + textStatus);
+          }
+        });
+      });
+      $('#cancel-delete-btn').off('click').on('click', function () {
+        $('#delete-confirmation').hide();
+      });
+    }
+
+    // Funciones para gestionar Documentos y Cartas de Liberación asociadas
+    function manageDocumentos(solicitudId) {
+      $('#documentos-modal-title').text(`Gestionar Documentos para Solicitud ID: ${solicitudId}`);
+      $('#documento-solicitud-id').val(solicitudId);
+      loadDocumentos(solicitudId);
+      $('#documentos-modal').show();
+    }
+
+    function manageCartas(solicitudId) {
+      $('#cartas-modal-title').text(`Gestionar Cartas de Liberación para Solicitud ID: ${solicitudId}`);
+      $('#carta-solicitud-id').val(solicitudId);
+      loadCartas(solicitudId);
+      $('#cartas-modal').show();
+    }
+
+    // Funciones para Documentos
+    function loadDocumentos(id_solicitud) {
+      const url = `${documentosApiUrl}?id_solicitud=${id_solicitud}`;
+      const tableBody = $('#documentos-table tbody');
+      tableBody.empty();
+      tableBody.append('<tr><td colspan="4">Cargando documentos...</td></tr>');
+
+      $.get(url, function(response) {
+        if (response.status === 'success') {
+          const documentos = response.data;
+          tableBody.empty();
+
+          if (documentos.length === 0) {
+            tableBody.append('<tr><td colspan="4">No hay documentos para esta solicitud.</td></tr>');
+            return;
+          }
+
+          documentos.forEach(documento => {
+            const row = `
+              <tr data-id="${documento.id_documento}">
+                <td>${documento.id_documento}</td>
+                <td>${documento.fecha_subida}</td>
+                <td>${documento.status}</td>
+                <td>
+                  <button class="actions-btn">⋮</button>
+                  <div class="actions-menu" style="display: none;">
+                    <button class="edit-documento-btn">Editar</button>
+                    <button class="delete-documento-btn">Eliminar</button>
+                    <button class="download-documento-btn">Descargar</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+        } else {
+          console.error('Error al obtener los documentos:', response.message);
+          tableBody.empty();
+          tableBody.append('<tr><td colspan="4">Error al cargar los documentos.</td></tr>');
+          alert('Error al obtener los documentos: ' + response.message);
+        }
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar documentos:', textStatus, errorThrown);
+        tableBody.empty();
+        tableBody.append('<tr><td colspan="4">Error al cargar los documentos.</td></tr>');
+        alert('Error al cargar documentos: ' + textStatus);
+      });
+    }
+
+    function openEditDocumentoModal(documentoId) {
+      $.get(`${documentosApiUrl}/${documentoId}`, function(response) {
+        if (response.status === 'success') {
+          const documento = response.data;
+          $('#documentos-modal-title').text('Editar Documento');
+          $('#documento-id').val(documento.id_documento);
+          $('#documento-solicitud-id').val(documento.id_solicitud);
+          $('#fecha_subida').val(documento.fecha_subida);
+          $('#status_documento').val(documento.status);
+          $('#archivo_documento').val(''); // Limpiar el campo de archivo
+          $('#documentos-modal').show();
+        } else {
+          console.error('Error al obtener los datos del documento:', response.message);
+          alert('Error al obtener los datos del documento: ' + response.message);
+        }
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error en la solicitud:', textStatus, errorThrown);
+        alert('Error en la solicitud: ' + textStatus);
+      });
+    }
+
+    function openDeleteConfirmationDocumento(documentoId) {
+      $('#delete-confirmation-documento').show();
+      $('#confirm-delete-documento-btn').off('click').on('click', function() {
+        $.ajax({
+          url: `${documentosApiUrl}/${documentoId}`,
+          type: 'DELETE',
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#delete-confirmation-documento').hide();
+              const selectedSolicitud = $('#documento-solicitud-id').val();
+              loadDocumentos(selectedSolicitud);
+              alert('Documento eliminado exitosamente.');
+            } else {
+              console.error('Error al eliminar el documento:', response.message);
+              alert('Error al eliminar el documento: ' + response.message);
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Error al eliminar el documento:', textStatus, errorThrown);
+            alert('Error al eliminar el documento: ' + textStatus);
+          }
+        });
+      });
+      $('#cancel-delete-documento-btn').off('click').on('click', function() {
+        $('#delete-confirmation-documento').hide();
+      });
+    }
+
+    // Funciones para Cartas de Liberación
+    function loadCartas(id_solicitud) {
+      const url = `${cartasApiUrl}?id_solicitud=${id_solicitud}`;
+      const tableBody = $('#cartas-table tbody');
+      tableBody.empty();
+      tableBody.append('<tr><td colspan="3">Cargando cartas de liberación...</td></tr>');
+
+      $.get(url, function(response) {
+        if (response.status === 'success') {
+          const cartas = response.data;
+          tableBody.empty();
+
+          if (cartas.length === 0) {
+            tableBody.append('<tr><td colspan="3">No hay cartas de liberación para esta solicitud.</td></tr>');
+            return;
+          }
+
+          cartas.forEach(carta => {
+            const row = `
+              <tr data-id="${carta.id_carta}">
+                <td>${carta.id_carta}</td>
+                <td>${carta.fecha_emision}</td>
+                <td>
+                  <button class="actions-btn">⋮</button>
+                  <div class="actions-menu" style="display: none;">
+                    <button class="edit-carta-btn">Editar</button>
+                    <button class="delete-carta-btn">Eliminar</button>
+                    <button class="download-carta-btn">Descargar</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+        } else {
+          console.error('Error al obtener las cartas de liberación:', response.message);
+          tableBody.empty();
+          tableBody.append('<tr><td colspan="3">Error al cargar las cartas de liberación.</td></tr>');
+          alert('Error al obtener las cartas de liberación: ' + response.message);
+        }
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar cartas de liberación:', textStatus, errorThrown);
+        tableBody.empty();
+        tableBody.append('<tr><td colspan="3">Error al cargar las cartas de liberación.</td></tr>');
+        alert('Error al cargar cartas de liberación: ' + textStatus);
+      });
+    }
+
+    function openEditCartaModal(cartaId) {
+      $.get(`${cartasApiUrl}/${cartaId}`, function(response) {
+        if (response.status === 'success') {
+          const carta = response.data;
+          $('#cartas-modal-title').text('Editar Carta de Liberación');
+          $('#carta-id').val(carta.id_carta);
+          $('#carta-solicitud-id').val(carta.id_solicitud);
+          $('#fecha_emision').val(carta.fecha_emision);
+          $('#archivo_carta').val(''); // Limpiar el campo de archivo
+          $('#cartas-modal').show();
+        } else {
+          console.error('Error al obtener los datos de la carta de liberación:', response.message);
+          alert('Error al obtener los datos de la carta de liberación: ' + response.message);
+        }
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error en la solicitud:', textStatus, errorThrown);
+        alert('Error en la solicitud: ' + textStatus);
+      });
+    }
+
+    function openDeleteConfirmationCarta(cartaId) {
+      $('#delete-confirmation-carta').show();
+      $('#confirm-delete-carta-btn').off('click').on('click', function() {
+        $.ajax({
+          url: `${cartasApiUrl}/${cartaId}`,
+          type: 'DELETE',
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#delete-confirmation-carta').hide();
+              const selectedSolicitud = $('#carta-solicitud-id').val();
+              loadCartas(selectedSolicitud);
+              alert('Carta de liberación eliminada exitosamente.');
+            } else {
+              console.error('Error al eliminar la carta de liberación:', response.message);
+              alert('Error al eliminar la carta de liberación: ' + response.message);
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Error al eliminar la carta de liberación:', textStatus, errorThrown);
+            alert('Error al eliminar la carta de liberación: ' + textStatus);
+          }
+        });
+      });
+      $('#cancel-delete-carta-btn').off('click').on('click', function() {
+        $('#delete-confirmation-carta').hide();
+      });
+    }
+
+    // Función para inicializar la tabla de solicitudes
+    $(document).ready(function () {
+      loadSolicitudes();
+
+      $('#search-btn').on('click', function () {
+        const query = $('#search').val().toLowerCase();
+        $('#solicitudes-table tbody tr').filter(function () {
+          $(this).toggle($(this).text().toLowerCase().indexOf(query) > -1);
+        });
+      });
+
+      $('#create-btn').on('click', function () {
+        $('#modal-title').text('Crear Solicitud');
+        $('#solicitud-id').val('');
+        $('#id_estudiante').val('');
+        $('#id_institucion').val('');
+        $('#fecha_solicitud').val('');
+        $('#estatus').val('pendiente');
+        $('#status_realizacion').val('sin_iniciar');
+        $('#solicitud-modal').show();
+      });
+
+      $('#cancel-btn').on('click', function () {
+        $('#solicitud-modal').hide();
+      });
+
+      $('#solicitud-form').on('submit', function (event) {
+        event.preventDefault();
+
+        const solicitudId = $('#solicitud-id').val();
+        const solicitudData = {
+          id_estudiante: parseInt($('#id_estudiante').val()),
+          id_institucion: parseInt($('#id_institucion').val()),
+          fecha_solicitud: $('#fecha_solicitud').val(),
+          estatus: $('#estatus').val(),
+          status_realizacion: $('#status_realizacion').val()
+        };
+
+        if (solicitudId) {
+          // Actualizar solicitud existente
+          $.ajax({
+            url: `${solicitudesApiUrl}/${solicitudId}`,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(solicitudData),
+            success: function (response) {
+              if (response.status === 'success') {
+                $('#solicitud-modal').hide();
+                loadSolicitudes();
+                alert('Solicitud actualizada exitosamente.');
+              } else {
+                console.error('Error al actualizar la solicitud:', response.message);
+                alert('Error al actualizar la solicitud: ' + response.message);
+              }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        } else {
+          // Crear nueva solicitud
+          $.ajax({
+            url: solicitudesApiUrl,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(solicitudData),
+            success: function (response) {
+              if (response.status === 'success') {
+                $('#solicitud-modal').hide();
+                loadSolicitudes();
+                alert('Solicitud creada exitosamente.');
+              } else {
+                console.error('Error al crear la solicitud:', response.message);
+                alert('Error al crear la solicitud: ' + response.message);
+              }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        }
+      });
+
+      // Eventos para botones en cada fila usando delegación de eventos
+      $('#solicitudes-table').on('click', '.actions-btn', function () {
+        $(this).next('.actions-menu').toggle();
+      });
+
+      $('#solicitudes-table').on('click', '.edit-btn', function () {
+        const solicitudId = $(this).closest('tr').data('id');
+        openEditModal(solicitudId);
+      });
+
+      $('#solicitudes-table').on('click', '.delete-btn', function () {
+        const solicitudId = $(this).closest('tr').data('id');
+        openDeleteConfirmation(solicitudId);
+      });
+
+      $('#solicitudes-table').on('click', '.manage-docs-btn', function () {
+        const solicitudId = $(this).closest('tr').data('id');
+        manageDocumentos(solicitudId);
+      });
+
+      $('#solicitudes-table').on('click', '.manage-carta-btn', function () {
+        const solicitudId = $(this).closest('tr').data('id');
+        manageCartas(solicitudId);
+      });
+
+      // Cerrar menú de acciones al hacer clic fuera
+      $(document).on('click', function(event) {
+        if (!$(event.target).closest('.actions-btn, .actions-menu').length) {
+          $('.actions-menu').hide();
+        }
+      });
+
+      // Manejar eventos de acciones en la tabla de Documentos usando delegación de eventos
+      $('#documentos-table').on('click', '.actions-btn', function() {
+        $(this).next('.actions-menu').toggle();
+      });
+
+      $('#documentos-table').on('click', '.edit-documento-btn', function() {
+        const documentoId = $(this).closest('tr').data('id');
+        openEditDocumentoModal(documentoId);
+      });
+
+      $('#documentos-table').on('click', '.delete-documento-btn', function() {
+        const documentoId = $(this).closest('tr').data('id');
+        openDeleteConfirmationDocumento(documentoId);
+      });
+
+      $('#documentos-table').on('click', '.download-documento-btn', function() {
+        const documentoId = $(this).closest('tr').data('id');
+        window.location.href = `https://socialitec2034.pythonanywhere.com/documentos/${documentoId}/descargar`;
+      });
+
+      // Manejar eventos de acciones en la tabla de Cartas de Liberación usando delegación de eventos
+      $('#cartas-table').on('click', '.actions-btn', function() {
+        $(this).next('.actions-menu').toggle();
+      });
+
+      $('#cartas-table').on('click', '.edit-carta-btn', function() {
+        const cartaId = $(this).closest('tr').data('id');
+        openEditCartaModal(cartaId);
+      });
+
+      $('#cartas-table').on('click', '.delete-carta-btn', function() {
+        const cartaId = $(this).closest('tr').data('id');
+        openDeleteConfirmationCarta(cartaId);
+      });
+
+      $('#cartas-table').on('click', '.download-carta-btn', function() {
+        const cartaId = $(this).closest('tr').data('id');
+        window.location.href = `https://socialitec2034.pythonanywhere.com/cartas_de_liberacion/${cartaId}/descargar`;
+      });
+    });
+
+    // Funciones para gestionar Documentos dentro del modal
+    // Crear/Editar Documento
+    $('#documento-form').on('submit', function (event) {
+      event.preventDefault();
+
+      const documentoId = $('#documento-id').val();
+      const id_solicitud = $('#documento-solicitud-id').val();
+      const formData = new FormData(this);
+
+      if (documentoId) {
+        // Actualizar documento existente
+        $.ajax({
+          url: `https://socialitec2034.pythonanywhere.com/documentos/${documentoId}`,
+          type: 'PUT',
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#documentos-modal').hide();
+              loadDocumentos(id_solicitud);
+              alert('Documento actualizado exitosamente.');
+            } else {
+              console.error('Error al actualizar el documento:', response.message);
+              alert('Error al actualizar el documento: ' + response.message);
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Error en la solicitud:', textStatus, errorThrown);
+            alert('Error en la solicitud: ' + textStatus);
+          }
+        });
+      } else {
+        // Crear nuevo documento
+        $.ajax({
+          url: `https://socialitec2034.pythonanywhere.com/documentos`,
+          type: 'POST',
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#documentos-modal').hide();
+              loadDocumentos(id_solicitud);
+              alert('Documento creado exitosamente.');
+            } else {
+              console.error('Error al crear el documento:', response.message);
+              alert('Error al crear el documento: ' + response.message);
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Error en la solicitud:', textStatus, errorThrown);
+            alert('Error en la solicitud: ' + textStatus);
+          }
+        });
+      }
+    });
+
+    // Funciones para gestionar Cartas de Liberación dentro del modal
+    // Crear/Editar Carta de Liberación
+    $('#carta-form').on('submit', function (event) {
+      event.preventDefault();
+
+      const cartaId = $('#carta-id').val();
+      const id_solicitud = $('#carta-solicitud-id').val();
+      const formData = new FormData(this);
+
+      if (cartaId) {
+        // Actualizar carta existente
+        $.ajax({
+          url: `https://socialitec2034.pythonanywhere.com/cartas_de_liberacion/${cartaId}`,
+          type: 'PUT',
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#cartas-modal').hide();
+              loadCartas(id_solicitud);
+              alert('Carta de liberación actualizada exitosamente.');
+            } else {
+              console.error('Error al actualizar la carta de liberación:', response.message);
+              alert('Error al actualizar la carta de liberación: ' + response.message);
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Error en la solicitud:', textStatus, errorThrown);
+            alert('Error en la solicitud: ' + textStatus);
+          }
+        });
+      } else {
+        // Crear nueva carta de liberación
+        $.ajax({
+          url: `https://socialitec2034.pythonanywhere.com/cartas_de_liberacion`,
+          type: 'POST',
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#cartas-modal').hide();
+              loadCartas(id_solicitud);
+              alert('Carta de liberación creada exitosamente.');
+            } else {
+              console.error('Error al crear la carta de liberación:', response.message);
+              alert('Error al crear la carta de liberación: ' + response.message);
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Error en la solicitud:', textStatus, errorThrown);
+            alert('Error en la solicitud: ' + textStatus);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>SocialITEC - Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Enlaza tu archivo CSS -->
+  <link rel="stylesheet" href="styles.css">
+  <!-- Fuente Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="user-estudiante">
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar__logo">
+        <img src="../../images/Social ITEC ICON.png" alt="SocialITEC" class="sidebar__logo-img">
+        <div class="sidebar__title">SocialITEC</div>
+      </div>
+      <nav class="sidebar__nav">
+        <a  class="sidebar__nav-link user-plantilla" data-src="profile.html">Perfil</a>
+        <a  class="sidebar__nav-link user-plantilla" data-src="../templates/index.html">Plantillas</a>
+        <a  class="sidebar__nav-link user-solicitud" data-src="../student/request.html">Solicitudes</a>
+        <a  class="sidebar__nav-link user-carta" data-src="../student/letter.html">Cartas de Liberación</a>
+        <a  class="sidebar__nav-link user-documento" data-src="../student/documents.html">Documentos</a>
+    <p></p>  
+    </nav>
+    </aside>
+    
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <header class="header">
+        <div class="header__user">
+          <span class="header__user-name" id="user-name">Cargando...</span>
+          <button class="header__logout-button" id="logout-button">Cerrar Sesión</button>
+        </div>
+      </header>
+      <main class="main">
+        <iframe id="main-iframe" src="" frameborder="0"></iframe>
+      </main>
+    </div>
+  </div>
+
+  <!-- Mensaje de notificación -->
+  <div id="logout-message" class="logout-message" style="display: none;">
+    ¡Sesión cerrada exitosamente!
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const idEstudiante = urlParams.get('id_estudiante');
+
+      if (!idEstudiante) {
+        alert('ID de Estudiante no proporcionado.');
+        window.location.href = '../login.html';
+        return;
+      }
+
+      // Realiza la solicitud al backend para obtener los datos del estudiante
+      try {
+        const response = await fetch(`https://socialitec2034.pythonanywhere.com/estudiantes/${idEstudiante}`);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          document.getElementById('user-name').innerText = data.data.nombre;
+        } else {
+          alert('No se pudo cargar el estudiante. Redirigiendo al login.');
+          window.location.href = '../login.html';
+        }
+      } catch (error) {
+        console.error('Error al cargar los datos del estudiante:', error);
+        alert('Error en el sistema. Redirigiendo al login.');
+        window.location.href = '../login.html';
+      }
+
+      // Configuración de los enlaces en la barra lateral
+      const sidebarLinks = document.querySelectorAll('.sidebar__nav-link');
+      const iframe = document.getElementById('main-iframe');
+
+      sidebarLinks.forEach(function (link) {
+        link.addEventListener('click', function (event) {
+          event.preventDefault();
+          const src = this.getAttribute('data-src');
+          iframe.src = src;
+
+          sidebarLinks.forEach(function (link) {
+            link.classList.remove('active');
+          });
+
+          this.classList.add('active');
+        });
+      });
+
+      if (sidebarLinks.length > 0) {
+        sidebarLinks[0].click();
+      }
+
+      // Manejo del botón de cerrar sesión
+      const logoutButton = document.getElementById('logout-button');
+      logoutButton.addEventListener('click', function () {
+        const confirmLogout = confirm('¿Estás seguro de que quieres cerrar sesión?');
+        if (confirmLogout) {
+          localStorage.removeItem('id_estudiante');
+
+          const logoutMessage = document.getElementById('logout-message');
+          logoutMessage.style.display = 'block';
+
+          setTimeout(() => {
+            logoutMessage.style.display = 'none';
+            window.location.href = '../login.html';
+          }, 2000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

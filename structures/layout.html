@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>SocialITEC - Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Enlaza tu archivo CSS -->
+  <link rel="stylesheet" href="../styles/layout.css">
+  <!-- Fuente Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .logout-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 20px 40px;
+      border-radius: 10px;
+      font-size: 1.5rem;
+      text-align: center;
+      display: none;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body class="user-encargado">
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar__logo">
+        <img src="../images/Social ITEC ICON.png" alt="SocialITEC" class="sidebar__logo-img">
+        <div class="sidebar__title">SocialITEC</div>
+      </div>
+      <nav class="sidebar__nav">
+        <a href="layout/encargados" class="sidebar__nav-link user-encargado" data-src="../structures/services_manager/index.html">Encargados</a>
+        <a href="layout/alumnos" class="sidebar__nav-link user-alumno" data-src="../structures/students/index.html">Alumnos</a>
+        <a href="layout/plantillas" class="sidebar__nav-link user-plantilla" data-src="../structures/templates/index.html">Plantillas</a>
+        <a href="layout/instituciones" class="sidebar__nav-link user-institucion" data-src="../structures/institutions/index.html">Instituciones</a>
+        <a href="layout/responsables" class="sidebar__nav-link user-responsable" data-src="../structures/program_manager/index.html">Responsables</a>
+        <a href="layout/solicitudes" class="sidebar__nav-link user-solicitud" data-src="../structures/requests/index.html">Solicitudes</a>
+        <a href="layout/cartas" class="sidebar__nav-link user-carta" data-src="../structures/release_letters/index.html">Cartas de Liberación</a>
+        <a href="layout/documentos" class="sidebar__nav-link user-documento" data-src="../structures/documents/index.html">Documentos</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header__user">
+          <span class="header__user-name" id="user-name">Cargando...</span>
+          <button class="header__logout-button" id="logout-button">Cerrar Sesión</button>
+        </div>
+      </header>
+
+      <!-- Main Section -->
+      <main class="main">
+        <iframe id="main-iframe" src="" frameborder="0"></iframe>
+      </main>
+    </div>
+  </div>
+
+  <!-- Mensaje de notificación -->
+  <div id="logout-message" class="logout-message">
+    ¡Sesión cerrada exitosamente!
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const idAdministrador = urlParams.get('id_administrador');
+
+      if (!idAdministrador) {
+        alert('ID de Administrador no proporcionado.');
+        window.location.href = 'login.html'; // Redirige al login
+        return;
+      }
+
+      // Realiza la solicitud al backend para obtener los datos del administrador
+      try {
+        const response = await fetch(`https://socialitec2034.pythonanywhere.com/administradores/${idAdministrador}`);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          // Muestra el nombre del administrador
+          document.getElementById('user-name').innerText = data.data.nombre;
+        } else {
+          alert('No se pudo cargar el administrador. Redirigiendo al login.');
+          window.location.href = 'login.html'; // Redirige al login si falla
+        }
+      } catch (error) {
+        console.error('Error al cargar los datos del administrador:', error);
+        alert('Error en el sistema. Redirigiendo al login.');
+        window.location.href = 'login.html';
+      }
+
+      // Sidebar links para el iframe
+      const sidebarLinks = document.querySelectorAll('.sidebar__nav-link');
+      const iframe = document.getElementById('main-iframe');
+
+      sidebarLinks.forEach(function (link) {
+        link.addEventListener('click', function (event) {
+          event.preventDefault();
+          const src = this.getAttribute('data-src');
+
+          iframe.src = src;
+
+          // Remueve la clase 'active' de todos los enlaces
+          sidebarLinks.forEach(function (link) {
+            link.classList.remove('active');
+          });
+
+          // Agrega la clase 'active' al enlace seleccionado
+          this.classList.add('active');
+        });
+      });
+
+      // Establece una página por defecto al cargar
+      if (sidebarLinks.length > 0) {
+        sidebarLinks[0].click();
+      }
+
+      // Manejar el botón de cerrar sesión
+      const logoutButton = document.getElementById('logout-button');
+      logoutButton.addEventListener('click', function () {
+        const confirmLogout = confirm('¿Estás seguro de que quieres cerrar sesión?');
+        if (confirmLogout) {
+          localStorage.removeItem('id_administrador'); // Limpia el almacenamiento local
+
+          // Muestra el mensaje de cierre de sesión
+          const logoutMessage = document.getElementById('logout-message');
+          logoutMessage.style.display = 'block';
+
+          // Espera 2 segundos antes de redirigir
+          setTimeout(() => {
+            logoutMessage.style.display = 'none';
+            window.location.href = 'login.html'; // Redirige al login
+          }, 2000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

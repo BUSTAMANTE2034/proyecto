@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Encargados</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Asegúrate de que el archivo styles.css esté en la misma carpeta -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <h2>Lista de Encargados</h2>
+      <div class="header-actions">
+        <input type="text" id="search" placeholder="Buscar encargado...">
+        <button id="search-btn">🔍</button>
+        <button id="create-btn">+ Crear</button>
+      </div>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body">
+      <table id="encargados-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filas dinámicas generadas por JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal para Crear/Editar Encargado -->
+  <div id="encargado-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="modal-title">Crear Encargado</h3>
+      <form id="encargado-form">
+        <input type="hidden" id="encargado-id">
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" required>
+        <label for="correo">Correo</label>
+        <input type="email" id="correo" required>
+        <label for="contrasena">Contraseña</label>
+        <input type="password" id="contrasena" required>
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación -->
+  <div id="delete-confirmation" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Confirmar Eliminación</h3>
+      <p>¿Está seguro de que desea eliminar este encargado?</p>
+      <button id="confirm-delete-btn">Eliminar</button>
+      <button id="cancel-delete-btn">Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    const apiBaseUrl = 'https://socialitec2034.pythonanywhere.com/encargados';
+
+    // Función para cargar y mostrar los encargados en la tabla
+    function loadEncargados() {
+      $.get(apiBaseUrl, function (response) {
+        if (response.status === 'success') {
+          const encargados = response.data;
+          const tableBody = $('#encargados-table tbody');
+          tableBody.empty(); // Limpia la tabla antes de agregar nuevas filas
+
+          // Itera sobre los encargados y crea una fila para cada uno
+          encargados.forEach(encargado => {
+            const row = `
+              <tr data-id="${encargado.id_encargado}">
+                <td>${encargado.nombre}</td>
+                <td>${encargado.correo}</td>
+                <td>
+                  <button class="actions-btn">⋮</button>
+                  <div class="actions-menu" style="display: none;">
+                    <button class="edit-btn">Editar</button>
+                    <button class="delete-btn">Eliminar</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+        } else {
+          console.error('Error al obtener los encargados:', response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar encargados:', textStatus, errorThrown);
+      });
+    }
+
+    // Funciones para manejar la edición y eliminación de encargados
+    function openEditModal(encargadoId) {
+      $.get(`${apiBaseUrl}/${encargadoId}`, function (response) {
+        if (response.status === 'success') {
+          const encargado = response.data;
+          // Completa los campos del modal con los datos del encargado
+          $('#modal-title').text('Editar Encargado');
+          $('#encargado-id').val(encargado.id_encargado);
+          $('#nombre').val(encargado.nombre);
+          $('#correo').val(encargado.correo);
+          $('#contrasena').val(encargado.contrasena); // Dejar vacío el campo de contraseña
+          $('#encargado-modal').show();
+        } else {
+          console.error('Error al obtener los datos del encargado:', response.message);
+          alert('Error al obtener los datos del encargado: ' + response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error en la solicitud:', textStatus, errorThrown);
+        alert('Error en la solicitud: ' + textStatus);
+      });
+    }
+
+    function openDeleteConfirmation(encargadoId) {
+      $('#delete-confirmation').show();
+      $('#confirm-delete-btn').off('click').on('click', function () {
+        $.ajax({
+          url: `${apiBaseUrl}/${encargadoId}`,
+          type: 'DELETE',
+          success: function (response) {
+            if (response.status === 'success') {
+              $('#delete-confirmation').hide();
+              loadEncargados();
+              alert('Encargado eliminado exitosamente.');
+            } else {
+              console.error('Error al eliminar el encargado:', response.message);
+              alert('Error al eliminar el encargado: ' + response.message);
+            }
+          },
+          error: function (jqXHR, textStatus, errorThrown) {
+            console.error('Error al eliminar el encargado:', textStatus, errorThrown);
+            alert('Error al eliminar el encargado: ' + textStatus);
+          }
+        });
+      });
+      $('#cancel-delete-btn').on('click', function () {
+        $('#delete-confirmation').hide();
+      });
+    }
+
+    // Función para inicializar la tabla de encargados
+    $(document).ready(function () {
+      loadEncargados();
+
+      $('#search-btn').on('click', function () {
+        const query = $('#search').val().toLowerCase();
+        $('#encargados-table tbody tr').filter(function () {
+          $(this).toggle($(this).text().toLowerCase().indexOf(query) > -1);
+        });
+      });
+
+      $('#create-btn').on('click', function () {
+        $('#modal-title').text('Crear Encargado');
+        $('#encargado-id').val('');
+        $('#nombre').val('');
+        $('#correo').val('');
+        $('#contrasena').val('');
+        $('#encargado-modal').show();
+      });
+
+      $('#cancel-btn').on('click', function () {
+        $('#encargado-modal').hide();
+      });
+
+      $('#encargado-form').on('submit', function (event) {
+        event.preventDefault();
+
+        const encargadoId = $('#encargado-id').val();
+        const contrasena = $('#contrasena').val();
+
+        const encargadoData = {
+          nombre: $('#nombre').val(),
+          correo: $('#correo').val(),
+        };
+
+        if (encargadoId) {
+          // Si se ingresó una nueva contraseña, la incluimos
+          if (contrasena) {
+            encargadoData.contrasena = contrasena;
+          }
+          // Actualizar encargado existente
+          $.ajax({
+            url: `${apiBaseUrl}/${encargadoId}`,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(encargadoData),
+            success: function (response) {
+              if (response.status === 'success') {
+                $('#encargado-modal').hide();
+                loadEncargados();
+                alert('Encargado actualizado exitosamente.');
+              } else {
+                console.error('Error al actualizar el encargado:', response.message);
+                alert('Error al actualizar el encargado: ' + response.message);
+              }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        } else {
+          // Al crear, la contraseña es obligatoria
+          if (!contrasena) {
+            alert('Por favor, ingresa una contraseña.');
+            return;
+          }
+          encargadoData.contrasena = contrasena;
+
+          // Crear nuevo encargado
+          $.ajax({
+            url: apiBaseUrl,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(encargadoData),
+            success: function (response) {
+              if (response.status === 'success') {
+                $('#encargado-modal').hide();
+                loadEncargados();
+                alert('Encargado creado exitosamente.');
+              } else {
+                console.error('Error al crear el encargado:', response.message);
+                alert('Error al crear el encargado: ' + response.message);
+              }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        }
+      });
+
+      // Eventos para botones en cada fila usando delegación de eventos
+      $('#encargados-table').on('click', '.actions-btn', function () {
+        $(this).next('.actions-menu').toggle();
+      });
+
+      $('#encargados-table').on('click', '.edit-btn', function () {
+        const encargadoId = $(this).closest('tr').data('id');
+        openEditModal(encargadoId);
+      });
+
+      $('#encargados-table').on('click', '.delete-btn', function () {
+        const encargadoId = $(this).closest('tr').data('id');
+        openDeleteConfirmation(encargadoId);
+      });
+    });
+  </script>
+</body>
+</html>

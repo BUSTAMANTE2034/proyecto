@@ -1,0 +1,29 @@
+Estudiante -> Sistema: Solicitar registro de actividad
+Sistema -> Base de Datos: Guardar información de actividad
+Base de Datos --> Sistema: Confirmación de registro
+Sistema --> Estudiante: Confirmación de registro
+
+Estudiante -> Sistema: Subir documento de actividad
+Sistema -> Base de Datos: Guardar documento
+Base de Datos --> Sistema: Confirmación de guardado
+Sistema --> Estudiante: Confirmación de subida
+
+Profesor -> Sistema: Revisar documentos
+Sistema -> Base de Datos: Obtener documentos subidos
+Base de Datos --> Sistema: Enviar documentos
+Sistema --> Profesor: Mostrar documentos
+
+Profesor -> Sistema: Aprobar/rechazar documento
+Sistema -> Base de Datos: Actualizar estado del documento
+Base de Datos --> Sistema: Confirmación de actualización
+Sistema --> Profesor: Confirmación de aprobación/rechazo
+
+Estudiante -> Sistema: Solicitar carta de liberación
+Sistema -> Base de Datos: Generar carta de liberación
+Base de Datos --> Sistema: Confirmación de generación
+Sistema --> Estudiante: Enviar carta de liberación
+
+Estudiante -> Sistema: Consultar estado de solicitud
+Sistema -> Base de Datos: Obtener estado de solicitud
+Base de Datos --> Sistema: Enviar estado
+Sistema --> Estudiante: Mostrar estado de solicitud

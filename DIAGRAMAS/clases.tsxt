@@ -1,0 +1,142 @@
+Diagrama de Clases
+
+Estudiante
+
+Atributos:
+id_estudiante: INT (Identificador único)
+nombre: VARCHAR(100)
+matricula: VARCHAR(20) (Única)
+correo: VARCHAR(100) (Único)
+contrasena: VARCHAR(255)
+creditos_aprobados: INT
+horas_completadas: INT (Predeterminado a 0)
+estatus_servicio: ENUM('pendiente', 'en_proceso', 'completado') (Predeterminado a 'pendiente')
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)
+Métodos:
+registrar()
+actualizarPerfil()
+---------------------------------------------------------------------------------------------------
+Encargado
+
+Atributos:
+id_encargado: INT (Identificador único)
+nombre: VARCHAR(100)
+correo: VARCHAR(100) (Único)
+contrasena: VARCHAR(255)
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)
+Métodos:
+iniciarSesion()
+gestionarDocumentos()
+---------------------------------------------------------------------------------------------------
+
+
+Administrador
+
+Atributos:
+id_administrador: INT (Identificador único)
+nombre: VARCHAR(100)
+correo: VARCHAR(100) (Único)
+contrasena: VARCHAR(255)
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)
+Métodos:
+crearUsuario()
+gestionarInstituciones()
+---------------------------------------------------------------------------------------------------
+
+
+Institucion
+
+Atributos:
+id_institucion: INT (Identificador único)
+nombre: VARCHAR(100)
+direccion: VARCHAR(255)
+telefono: VARCHAR(15)
+correo: VARCHAR(100) (Único)
+nombre_programa: VARCHAR(100)
+descripcion_programa: TEXT
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)
+Métodos:
+crearPrograma()
+actualizarInformacion()
+---------------------------------------------------------------------------------------------------
+
+
+ResponsablePrograma
+
+Atributos:
+id_responsable: INT (Identificador único)
+id_institucion: INT (FK)
+nombre_responsable: VARCHAR(100)
+cargo: VARCHAR(100)
+rf: VARCHAR(20) (Único)
+correo: VARCHAR(100) (Único)
+numero_telefono: VARCHAR(15)
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)
+Métodos:
+asignarResponsable()
+actualizarResponsable()
+---------------------------------------------------------------------------------------------------
+
+
+Solicitudes
+
+Atributos:
+id_solicitud: INT (Identificador único)
+id_estudiante: INT (FK)
+id_institucion: INT (FK)
+fecha_solicitud: DATE
+estatus: ENUM('pendiente', 'aprobada', 'rechazada') (Predeterminado a 'pendiente')
+status_realizacion: ENUM('en_progreso', 'realizado', 'sin_iniciar') (Predeterminado a 'sin_iniciar')
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)
+---------------------------------------------------------------------------------------------------
+
+
+Documentos
+
+Atributos:
+id_documento: INT (Identificador único)
+id_solicitud: INT (FK)
+id_encargado: INT (FK)
+fecha_subida: DATE
+status: ENUM('aprobada', 'rechazada', 'pendiente') (Predeterminado a 'pendiente')
+ruta_archivo: VARCHAR(255)
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)
+---------------------------------------------------------------------------------------------------
+
+
+CartasDeLiberacion
+
+Atributos:
+id_carta: INT (Identificador único)
+id_solicitud: INT (FK)
+ruta_carta: VARCHAR(255) (Almacena el archivo PDF de la carta de liberación)
+fecha_emision: DATE
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)
+---------------------------------------------------------------------------------------------------
+
+
+Plantillas
+
+Atributos:
+id_plantilla: INT (Identificador único)
+nombre: VARCHAR(100)
+ultima_actualizacion: DATE
+created_at: TIMESTAMP
+updated_at: TIMESTAMP
+deleted_at: TIMESTAMP (NULL por defecto)

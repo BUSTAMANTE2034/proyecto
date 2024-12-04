@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles/social_service.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>Servicio Social - SocialITEC</title>
+    <style>
+      /* General Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        margin: 0;
+        color: #18192e;
+        background-color: #f1f7fe;
+      }
+
+      /* Header */
+      .header {
+        background-color: #002855;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+      }
+
+      .header__logo {
+        display: flex;
+        align-items: center;
+      }
+
+      .header__logo-img {
+        height: 3rem;
+        margin-right: 0.5rem;
+      }
+
+      .header__title {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .header__nav {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .header__nav-link {
+        color: white;
+        text-decoration: none;
+        font-size: 1rem;
+        transition: color 0.3s ease;
+      }
+
+      .header__nav-link:hover,
+      .header__nav-link.active {
+        color: #00509e;
+      }
+
+      /* Main Section */
+      .main {
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .intro,
+      .requirements,
+      .details,
+      .areas,
+      .benefits {
+        margin-bottom: 2rem;
+      }
+
+      .intro__title,
+      .requirements__title,
+      .details__title,
+      .areas__title,
+      .benefits__title {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #002855;
+        margin-bottom: 1rem;
+      }
+
+      .intro__description {
+        font-size: 1rem;
+        color: #18192e;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      /* Lists */
+      .requirements__list,
+      .areas__list,
+      .benefits__list {
+        list-style-type: disc;
+        margin: 0 auto;
+        max-width: 600px;
+        text-align: left;
+        padding-left: 1.5rem;
+        line-height: 1.6;
+      }
+
+      /* Footer */
+      .footer {
+        background-color: #002855;
+        color: white;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .footer__nav {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      }
+
+      .footer__nav-link {
+        color: white;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.3s ease;
+      }
+
+      .footer__nav-link:hover {
+        color: #00509e;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header" class="header">
+      <div class="header__logo">
+        <img
+          src="../images/Social ITEC ICON.png"
+          alt="Document Management"
+          class="header__logo-img"
+        />
+        <div class="header__title">SocialITEC</div>
+      </div>
+      <nav class="header__nav">
+        <a href="landing-page.html" class="header__nav-link">HOME</a>
+        <a href="login.html" class="header__nav-link">Iniciar Sesión</a>
+        <a href="social_service.html" class="header__nav-link"
+          >Servicio Social</a
+        >
+        <a href="tecnm_leon.html" class="header__nav-link">TecNM León</a>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="intro">
+        <h1 class="intro__title">Servicio Social</h1>
+        <p class="intro__description">
+          El Servicio Social es una actividad obligatoria y temporal que permite
+          a los estudiantes del TecNM aplicar sus conocimientos en beneficio de
+          la sociedad. Es un requisito indispensable para la titulación
+          profesional.
+        </p>
+      </section>
+
+      <section class="requirements">
+        <h2 class="requirements__title">Requisitos</h2>
+        <ul class="requirements__list">
+          <li>
+            Haber aprobado al menos el 70% de los créditos del plan de estudios.
+          </li>
+          <li>Estar inscrito al momento de registrar el Servicio Social.</li>
+          <li>
+            Contar con un correo institucional para el registro en el SITEC.
+          </li>
+        </ul>
+      </section>
+
+      <section class="details">
+        <h2 class="details__title">Duración y Créditos</h2>
+        <p>
+          El Servicio Social debe cubrir un mínimo de
+          <strong>480 horas</strong> en un periodo no menor a seis meses ni
+          mayor a dos años.
+        </p>
+      </section>
+
+      <section class="areas">
+        <h2 class="areas__title">¿Dónde se puede realizar?</h2>
+        <ul class="areas__list">
+          <li>
+            <strong>Instituciones públicas:</strong> Dependencias municipales,
+            estatales o federales.
+          </li>
+          <li>
+            <strong>Organizaciones no gubernamentales:</strong> ONG en áreas
+            como educación, salud o medio ambiente.
+          </li>
+          <li>
+            <strong>Proyectos internos:</strong> Programas desarrollados dentro
+            del TecNM con impacto social.
+          </li>
+        </ul>
+      </section>
+
+      <section class="benefits">
+        <h2 class="benefits__title">Beneficios del Servicio Social</h2>
+        <ul class="benefits__list">
+          <li>
+            <strong>Aplicación práctica:</strong> Utilizar conocimientos
+            adquiridos en situaciones reales.
+          </li>
+          <li>
+            <strong>Desarrollo profesional:</strong> Fortalecer habilidades como
+            liderazgo y trabajo en equipo.
+          </li>
+          <li>
+            <strong>Requisito de titulación:</strong> Es necesario para obtener
+            el título profesional.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2024 SocialITEC. Todos los derechos reservados.</p>
+      <nav class="footer__nav">
+        <a href="about.html" class="footer__nav-link">Nosotros</a>
+        <a href="contact.html" class="footer__nav-link">Contacto</a>
+      </nav>
+    </footer>
+  </body>
+</html>

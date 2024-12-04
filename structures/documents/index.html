@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestión de Documentos</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Asegúrate de que el archivo styles.css esté en la misma carpeta -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <!-- Tarjeta de Documentos -->
+  <div class="card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <h2>Lista de Documentos</h2>
+      <div class="header-actions">
+        <select id="select-solicitud">
+          <option value="">Selecciona una Solicitud</option>
+          <!-- Opciones dinámicas generadas por JavaScript -->
+        </select>
+        <input type="text" id="search-documentos" placeholder="Buscar documento...">
+        <button id="search-documentos-btn">🔍</button>
+        <button id="create-documento-btn">+ Crear</button>
+      </div>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body">
+      <table id="documentos-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fecha de Subida</th>
+            <th>Status</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filas dinámicas generadas por JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal para Crear/Editar Documento -->
+  <div id="documento-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="documento-modal-title">Crear Documento</h3>
+      <form id="documento-form" enctype="multipart/form-data">
+        <!-- Campo oculto para id_documento (sin atributo name por defecto) -->
+        <input type="hidden" id="documento-id">
+        
+        <!-- Campo oculto corregido para id_solicitud -->
+        <input type="hidden" id="documento-solicitud-id" name="id_solicitud">
+        
+        <label for="fecha_subida">Fecha de Subida</label>
+        <input type="date" id="fecha_subida" name="fecha_subida" required>
+        
+        <label for="archivo_documento">Archivo (PDF)</label>
+        <input type="file" id="archivo_documento" name="archivo" accept=".pdf" >
+        
+        <label for="status_documento">Status</label>
+        <select id="status_documento" name="status">
+          <option value="pendiente">Pendiente</option>
+          <option value="aprobada">Aprobada</option>
+          <option value="rechazada">Rechazada</option>
+        </select>
+        
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-documento-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación -->
+  <div id="delete-confirmation" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Confirmar Eliminación</h3>
+      <p>¿Está seguro de que desea eliminar este documento?</p>
+      <button id="confirm-delete-btn">Eliminar</button>
+      <button id="cancel-delete-btn">Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    const apiBaseUrl = 'https://socialitec2034.pythonanywhere.com';
+    const documentosApiUrl = `${apiBaseUrl}/documentos`;
+    const solicitudesApiUrl = `${apiBaseUrl}/solicitudes`; 
+
+    // Funciones para Documentos
+    function loadSolicitudes() {
+      $.get(`${solicitudesApiUrl}`, function(response) {
+        if (response.status === 'success') {
+          const solicitudes = response.data;
+          const selectSolicitud = $('#select-solicitud');
+          solicitudes.forEach(solicitud => {
+            selectSolicitud.append(`<option value="${solicitud.id_solicitud}">${solicitud.id_solicitud} - ${solicitud.nombre_estudiante}</option>`);
+          });
+        } else {
+          console.error('Error al obtener las solicitudes:', response.message);
+          alert('Error al obtener las solicitudes: ' + response.message);
+        }
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar solicitudes:', textStatus, errorThrown);
+        alert('Error al cargar solicitudes: ' + textStatus);
+      });
+    }
+    function loadDocumentos(id_solicitud) {
+        let url = documentosApiUrl;
+        if (id_solicitud) {
+          url += `?id_solicitud=${id_solicitud}`;
+        }
+      
+        const tableBody = $('#documentos-table tbody');
+        tableBody.empty();
+        tableBody.append('<tr><td colspan="4">Cargando documentos...</td></tr>');
+      
+        $.get(url, function(response) {
+          if (response.status === 'success') {
+            const documentos = response.data;
+            tableBody.empty();
+      
+            if (documentos.length === 0) {
+              tableBody.append('<tr><td colspan="4">No hay documentos para esta solicitud.</td></tr>');
+              return;
+            }
+      
+            documentos.forEach(documento => {
+              const row = `
+                <tr data-id="${documento.id_documento}">
+                  <td>${documento.id_documento}</td>
+                  <td>${documento.fecha_subida}</td>
+                  <td>${documento.status}</td>
+                  <td>
+                    <button class="actions-btn">⋮</button>
+                    <div class="actions-menu" style="display: none;">
+                      <button class="edit-documento-btn">Editar</button>
+                      <button class="delete-documento-btn">Eliminar</button>
+                      <button class="download-documento-btn">Descargar</button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+              tableBody.append(row);
+            });
+          } else {
+            console.error('Error al obtener los documentos:', response.message);
+            tableBody.empty();
+            tableBody.append('<tr><td colspan="4">Error al cargar los documentos.</td></tr>');
+            alert('Error al obtener los documentos: ' + response.message);
+          }
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+          console.error('Error al cargar documentos:', textStatus, errorThrown);
+          tableBody.empty();
+          tableBody.append('<tr><td colspan="4">Error al cargar los documentos.</td></tr>');
+          alert('Error al cargar documentos: ' + textStatus);
+        });
+      }
+      
+      
+
+    function openEditDocumentoModal(documentoId) {
+      $.get(`${documentosApiUrl}/${documentoId}`, function(response) {
+        if (response.status === 'success') {
+          const documento = response.data;
+          $('#documento-modal-title').text('Editar Documento');
+          $('#documento-id').val(documento.id_documento).attr('name', 'id_documento'); // Asignar 'name'
+          $('#documento-solicitud-id').val(documento.id_solicitud);
+          $('#fecha_subida').val(documento.fecha_subida);
+          $('#status_documento').val(documento.status);
+          $('#archivo_documento').val(''); // Limpiar el campo de archivo
+          $('#documento-modal').show();
+        } else {
+          console.error('Error al obtener los datos del documento:', response.message);
+          alert('Error al obtener los datos del documento: ' + response.message);
+        }
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error en la solicitud:', textStatus, errorThrown);
+        alert('Error en la solicitud: ' + textStatus);
+      });
+    }
+
+    function openDeleteConfirmationDocumento(documentoId) {
+      $('#delete-confirmation').show();
+      $('#confirm-delete-btn').off('click').on('click', function() {
+        $.ajax({
+          url: `${documentosApiUrl}/${documentoId}`,
+          type: 'DELETE',
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#delete-confirmation').hide();
+              const selectedSolicitud = $('#select-solicitud').val();
+              loadDocumentos(selectedSolicitud);
+              alert('Documento eliminado exitosamente.');
+            } else {
+              console.error('Error al eliminar el documento:', response.message);
+              alert('Error al eliminar el documento: ' + response.message);
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Error al eliminar el documento:', textStatus, errorThrown);
+            alert('Error al eliminar el documento: ' + textStatus);
+          }
+        });
+      });
+      $('#cancel-delete-btn').off('click').on('click', function() {
+        $('#delete-confirmation').hide();
+      });
+    }
+
+    // Función para inicializar la tabla de documentos
+    $(document).ready(function() {
+      loadSolicitudes();
+
+      // Cargar documentos al seleccionar una solicitud
+$('#select-solicitud').on('change', function() {
+    const id_solicitud = $(this).val();
+    if (id_solicitud) {
+      loadDocumentos(id_solicitud);
+    } else {
+      $('#documentos-table tbody').empty();
+    }
+  });
+  
+
+      // Funcionalidad de búsqueda para documentos
+      $('#search-documentos-btn').on('click', function() {
+        const query = $('#search-documentos').val().toLowerCase();
+        $('#documentos-table tbody tr').filter(function() {
+          $(this).toggle($(this).text().toLowerCase().indexOf(query) > -1);
+        });
+      });
+
+      // Abrir modal para crear nuevo documento
+      $('#create-documento-btn').on('click', function() {
+        const id_solicitud = $('#select-solicitud').val();
+        if (!id_solicitud) {
+          alert('Por favor, selecciona una solicitud antes de crear un documento.');
+          return;
+        }
+        $('#documento-modal-title').text('Crear Documento');
+        $('#documento-id').val('').removeAttr('name'); // Limpiar y eliminar 'name'
+        $('#documento-solicitud-id').val(id_solicitud); // Asignar el id_solicitud al campo oculto
+        $('#fecha_subida').val('');
+        $('#status_documento').val('pendiente');
+        $('#archivo_documento').val('');
+        $('#documento-modal').show();
+      });
+
+      // Cancelar modal de documento
+      $('#cancel-documento-btn').on('click', function() {
+        $('#documento-modal').hide();
+      });
+
+      // Manejar el envío del formulario de documento
+      $('#documento-form').on('submit', function(event) {
+        event.preventDefault();
+
+        const documentoId = $('#documento-id').val();
+        const id_solicitud = $('#documento-solicitud-id').val();
+        const formData = new FormData(this);
+
+        if (documentoId) {
+          // Actualizar documento existente
+          $.ajax({
+            url: `${documentosApiUrl}/${documentoId}`,
+            type: 'PUT',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+              if (response.status === 'success') {
+                $('#documento-modal').hide();
+                loadDocumentos(id_solicitud);
+                alert('Documento actualizado exitosamente.');
+              } else {
+                console.error('Error al actualizar el documento:', response.message);
+                alert('Error al actualizar el documento: ' + response.message);
+              }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        } else {
+          // Crear nuevo documento
+          $.ajax({
+            url: documentosApiUrl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+              if (response.status === 'success') {
+                $('#documento-modal').hide();
+                loadDocumentos(id_solicitud);
+                alert('Documento creado exitosamente.');
+              } else {
+                console.error('Error al crear el documento:', response.message);
+                alert('Error al crear el documento: ' + response.message);
+              }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        }
+      });
+
+      // Manejar eventos de acciones en la tabla de documentos usando delegación de eventos
+      $('#documentos-table').on('click', '.actions-btn', function() {
+        $(this).next('.actions-menu').toggle();
+      });
+
+      $('#documentos-table').on('click', '.edit-documento-btn', function() {
+        const documentoId = $(this).closest('tr').data('id');
+        openEditDocumentoModal(documentoId);
+      });
+
+      $('#documentos-table').on('click', '.delete-documento-btn', function() {
+        const documentoId = $(this).closest('tr').data('id');
+        openDeleteConfirmationDocumento(documentoId);
+      });
+
+      $('#documentos-table').on('click', '.download-documento-btn', function() {
+        const documentoId = $(this).closest('tr').data('id');
+        window.location.href = `${documentosApiUrl}/${documentoId}/descargar`;
+      });
+
+      // Cerrar menú de acciones al hacer clic fuera
+      $(document).on('click', function(event) {
+        if (!$(event.target).closest('.actions-btn, .actions-menu').length) {
+          $('.actions-menu').hide();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

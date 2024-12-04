@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Plantillas</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Asegúrate de que el archivo styles.css esté en la misma carpeta -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <!-- Tarjeta de Plantillas -->
+  <div class="card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <h2>Lista de Plantillas</h2>
+      <div class="header-actions">
+        <input type="text" id="search-plantillas" placeholder="Buscar plantilla...">
+        <button id="search-plantillas-btn">🔍</button>
+        <button id="create-plantilla-btn">+ Crear</button>
+      </div>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body">
+      <table id="plantillas-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Última Actualización</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filas dinámicas generadas por JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal para Crear/Editar Plantilla -->
+  <div id="plantilla-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="plantilla-modal-title">Crear Plantilla</h3>
+      <form id="plantilla-form" enctype="multipart/form-data">
+        <input type="hidden" id="plantilla-id">
+        <label for="nombre_plantilla">Nombre</label>
+        <input type="text" id="nombre_plantilla" name="nombre" required>
+        <label for="ultima_actualizacion">Última Actualización</label>
+        <input type="date" id="ultima_actualizacion" name="ultima_actualizacion" required>
+        <label for="archivo_plantilla">Archivo</label>
+        <input type="file" id="archivo_plantilla" name="archivo" accept=".pdf,.doc,.docx,.xlsx" required>
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-plantilla-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación -->
+  <div id="delete-confirmation" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Confirmar Eliminación</h3>
+      <p>¿Está seguro de que desea eliminar esta plantilla?</p>
+      <button id="confirm-delete-btn">Eliminar</button>
+      <button id="cancel-delete-btn">Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    const apiBaseUrl = 'https://socialitec2034.pythonanywhere.com';
+    const plantillasApiUrl = `${apiBaseUrl}/plantillas`;
+
+    // Funciones para Plantillas
+    function loadPlantillas() {
+      $.get(plantillasApiUrl, function(response) {
+        if (response.status === 'success') {
+          const plantillas = response.data;
+          const tableBody = $('#plantillas-table tbody');
+          tableBody.empty();
+
+          plantillas.forEach(plantilla => {
+            const row = `
+              <tr data-id="${plantilla.id_plantilla}">
+                <td>${plantilla.nombre}</a></td>
+                <!-<td><a href="#" class="open-plantilla-link">${plantilla.nombre}</a></td>-->
+                <td>${plantilla.ultima_actualizacion}</td>
+                <td>
+                  <button class="actions-btn">⋮</button>
+                  <div class="actions-menu" style="display: none;">
+                    <button class="edit-plantilla-btn">Editar</button>
+                    <button class="delete-plantilla-btn">Eliminar</button>
+                    <button class="download-plantilla-btn">Descargar</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+        } else {
+          console.error('Error al obtener las plantillas:', response.message);
+          alert('Error al obtener las plantillas: ' + response.message);
+        }
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar plantillas:', textStatus, errorThrown);
+        alert('Error al cargar plantillas: ' + textStatus);
+      });
+    }
+
+    function openEditPlantillaModal(plantillaId) {
+      $.get(`${plantillasApiUrl}/${plantillaId}`, function(response) {
+        if (response.status === 'success') {
+          const plantilla = response.data;
+          $('#plantilla-modal-title').text('Editar Plantilla');
+          $('#plantilla-id').val(plantilla.id_plantilla);
+          $('#nombre_plantilla').val(plantilla.nombre);
+          $('#ultima_actualizacion').val(plantilla.ultima_actualizacion);
+          $('#archivo_plantilla').val(''); // Limpiar el campo de archivo
+          $('#plantilla-modal').show();
+        } else {
+          console.error('Error al obtener los datos de la plantilla:', response.message);
+          alert('Error al obtener los datos de la plantilla: ' + response.message);
+        }
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Error en la solicitud:', textStatus, errorThrown);
+        alert('Error en la solicitud: ' + textStatus);
+      });
+    }
+
+    function openDeleteConfirmationPlantilla(plantillaId) {
+      $('#delete-confirmation').show();
+      $('#confirm-delete-btn').off('click').on('click', function() {
+        $.ajax({
+          url: `${plantillasApiUrl}/${plantillaId}`,
+          type: 'DELETE',
+          success: function(response) {
+            if (response.status === 'success') {
+              $('#delete-confirmation').hide();
+              loadPlantillas();
+              alert('Plantilla eliminada exitosamente.');
+            } else {
+              console.error('Error al eliminar la plantilla:', response.message);
+              alert('Error al eliminar la plantilla: ' + response.message);
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.error('Error al eliminar la plantilla:', textStatus, errorThrown);
+            alert('Error al eliminar la plantilla: ' + textStatus);
+          }
+        });
+      });
+      $('#cancel-delete-btn').off('click').on('click', function() {
+        $('#delete-confirmation').hide();
+      });
+    }
+
+    // Función para inicializar la tabla de plantillas
+    $(document).ready(function() {
+      loadPlantillas();
+
+      // Funcionalidad de búsqueda para plantillas
+      $('#search-plantillas-btn').on('click', function() {
+        const query = $('#search-plantillas').val().toLowerCase();
+        $('#plantillas-table tbody tr').filter(function() {
+          $(this).toggle($(this).text().toLowerCase().indexOf(query) > -1);
+        });
+      });
+
+      // Abrir modal para crear nueva plantilla
+      $('#create-plantilla-btn').on('click', function() {
+        $('#plantilla-modal-title').text('Crear Plantilla');
+        $('#plantilla-id').val('');
+        $('#nombre_plantilla').val('');
+        $('#ultima_actualizacion').val('');
+        $('#archivo_plantilla').val('');
+        $('#plantilla-modal').show();
+      });
+
+      // Cancelar modal de plantilla
+      $('#cancel-plantilla-btn').on('click', function() {
+        $('#plantilla-modal').hide();
+      });
+
+      // Manejar el envío del formulario de plantilla
+      $('#plantilla-form').on('submit', function(event) {
+        event.preventDefault();
+
+        const plantillaId = $('#plantilla-id').val();
+        const formData = new FormData(this);
+
+        if (plantillaId) {
+          // Actualizar plantilla existente
+          $.ajax({
+            url: `${plantillasApiUrl}/${plantillaId}`,
+            type: 'PUT',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+              if (response.status === 'success') {
+                $('#plantilla-modal').hide();
+                loadPlantillas();
+                alert('Plantilla actualizada exitosamente.');
+              } else {
+                console.error('Error al actualizar la plantilla:', response.message);
+                alert('Error al actualizar la plantilla: ' + response.message);
+              }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        } else {
+          // Crear nueva plantilla
+          $.ajax({
+            url: plantillasApiUrl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+              if (response.status === 'success') {
+                $('#plantilla-modal').hide();
+                loadPlantillas();
+                alert('Plantilla creada exitosamente.');
+              } else {
+                console.error('Error al crear la plantilla:', response.message);
+                alert('Error al crear la plantilla: ' + response.message);
+              }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        }
+      });
+
+      // Manejar eventos de acciones en la tabla de plantillas usando delegación de eventos
+      $('#plantillas-table').on('click', '.actions-btn', function() {
+        $(this).next('.actions-menu').toggle();
+      });
+
+      $('#plantillas-table').on('click', '.edit-plantilla-btn', function() {
+        const plantillaId = $(this).closest('tr').data('id');
+        openEditPlantillaModal(plantillaId);
+      });
+
+      $('#plantillas-table').on('click', '.delete-plantilla-btn', function() {
+        const plantillaId = $(this).closest('tr').data('id');
+        openDeleteConfirmationPlantilla(plantillaId);
+      });
+
+      $('#plantillas-table').on('click', '.download-plantilla-btn', function() {
+        const plantillaId = $(this).closest('tr').data('id');
+        window.location.href = `${plantillasApiUrl}/download/${plantillaId}`;
+      });
+
+      $('#plantillas-table').on('click', '.open-plantilla-link', function(e) {
+        e.preventDefault();
+        const plantillaId = $(this).closest('tr').data('id');
+        window.open(`${plantillasApiUrl}/download/${plantillaId}`, '_blank');
+      });
+    });
+  </script>
+</body>
+</html>

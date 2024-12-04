@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Solicitudes</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7fc;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .header {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 10px;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .info-item label {
+      font-weight: bold;
+    }
+    .info-value {
+      font-size: 1rem;
+      color: #555;
+    }
+    .btn-edit, .btn-submit {
+      background-color: #007bff;
+      color: white;
+      padding: 5px 15px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .btn-cancel {
+      background-color: #dc3545;
+      color: white;
+      padding: 5px 15px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .btn-cancel:hover, .btn-submit:hover, .btn-edit:hover {
+      opacity: 0.8;
+    }
+    .select-institution {
+      margin-top: 10px;
+      width: 100%;
+      max-width: 600px;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .status-pending {
+      color: #ffcc00;
+    }
+    .status-approved {
+      color: #28a745;
+    }
+    .status-rejected {
+      color: #dc3545;
+    }
+    .status-in-process {
+      color: #007bff;
+    }
+    #solicitud-create, #solicitud-info {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 20px;
+    }
+    #creditos-warning {
+      color: red;
+      margin-bottom: 10px;
+      display: none;
+    }
+    /* Modal Styles */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 1; /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%; /* Full width */
+      height: 100%; /* Full height */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto; /* 10% from the top and centered */
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%; /* Could be more or less, depending on screen size */
+      max-width: 500px;
+      border-radius: 10px;
+    }
+    .close-modal {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close-modal:hover,
+    .close-modal:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Gestión de Solicitudes</div>
+
+    <!-- Sección para mostrar la información de la solicitud existente -->
+    <div id="solicitud-info" style="display: none;">
+      <!-- Contenido dinámico -->
+    </div>
+
+    <!-- Sección para crear una nueva solicitud -->
+    <div id="solicitud-create" style="display: none;">
+      <div id="creditos-warning">
+        Debes tener al menos 183 créditos aprobados para solicitar servicio social.
+      </div>
+      <label for="institucion-select"><strong>Selecciona una Institución:</strong></label>
+      <select id="institucion-select" class="select-institution">
+        <option value="">-- Selecciona una institución --</option>
+      </select>
+      <button class="btn-submit" id="crear-solicitud-btn">Crear Solicitud</button>
+    </div>
+
+    <!-- Botón para abrir el modal de crear solicitud -->
+    <div id="crear-solicitud-container" style="display: none; width: 100%; max-width: 600px;">
+      <button class="btn-submit" id="abrir-modal-btn">Crear Nueva Solicitud</button>
+    </div>
+
+    <!-- Modal para crear una nueva solicitud -->
+    <div id="crear-solicitud-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal" id="cerrar-modal-btn">&times;</span>
+        <h2>Crear Nueva Solicitud</h2>
+        <label for="modal-institucion-select"><strong>Selecciona una Institución:</strong></label>
+        <select id="modal-institucion-select" class="select-institution">
+          <option value="">-- Selecciona una institución --</option>
+        </select>
+        <button class="btn-submit" id="modal-crear-solicitud-btn">Crear Solicitud</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const urlParams = new URLSearchParams(window.top.location.search);
+      const idEstudiante = urlParams.get('id_estudiante'); // Obtener el ID del estudiante
+      const solicitudCreateSection = document.getElementById('solicitud-create');
+      const solicitudInfoSection = document.getElementById('solicitud-info');
+      const creditosWarning = document.getElementById('creditos-warning');
+      const crearSolicitudBtn = document.getElementById('crear-solicitud-btn');
+      const institucionSelect = document.getElementById('institucion-select');
+
+      const crearSolicitudContainer = document.getElementById('crear-solicitud-container');
+      const abrirModalBtn = document.getElementById('abrir-modal-btn');
+      const crearSolicitudModal = document.getElementById('crear-solicitud-modal');
+      const cerrarModalBtn = document.getElementById('cerrar-modal-btn');
+      const modalInstitucionSelect = document.getElementById('modal-institucion-select');
+      const modalCrearSolicitudBtn = document.getElementById('modal-crear-solicitud-btn');
+
+      if (!idEstudiante) {
+        console.error('ID de Estudiante no encontrado en la URL.');
+        return; // Si no se encuentra el ID, no hace nada
+      }
+
+      // Función para obtener los datos del estudiante
+      function obtenerEstudiante() {
+        fetch(`https://socialitec2034.pythonanywhere.com/estudiantes/${idEstudiante}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              const estudiante = data.data;
+              verificarCreditos(estudiante.creditos_aprobados);
+            } else {
+              console.error('Error al obtener los datos del estudiante:', data.message);
+              creditosWarning.textContent = 'Error al obtener los datos del estudiante.';
+              creditosWarning.style.display = 'block';
+            }
+          })
+          .catch(error => {
+            console.error('Error al obtener los datos del estudiante:', error);
+            creditosWarning.textContent = 'Error al obtener los datos del estudiante.';
+            creditosWarning.style.display = 'block';
+          });
+      }
+
+      // Función para verificar los créditos del estudiante
+      function verificarCreditos(creditosAprobados) {
+        if (creditosAprobados < 183) {
+          creditosWarning.textContent = 'Debes tener al menos 183 créditos aprobados para solicitar servicio social.';
+          creditosWarning.style.display = 'block';
+          solicitudCreateSection.style.display = 'none'; // No permitir crear solicitud si no tiene suficientes créditos
+          crearSolicitudContainer.style.display = 'none';
+        } else {
+          creditosWarning.style.display = 'none';
+          // Continuar con la verificación de solicitudes existentes
+          fetchInstituciones();
+          checkExistingSolicitud();
+        }
+      }
+
+      // Función para obtener la lista de instituciones disponibles
+      function fetchInstituciones() {
+        // Fetch para el select principal
+        fetch('https://socialitec2034.pythonanywhere.com/instituciones') // Cambia la URL si es necesario
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              data.data.forEach(institucion => {
+                const option = document.createElement('option');
+                option.value = institucion.id_institucion;
+                option.textContent = institucion.nombre;
+                institucionSelect.appendChild(option);
+
+                // También llenar el select del modal
+                const modalOption = document.createElement('option');
+                modalOption.value = institucion.id_institucion;
+                modalOption.textContent = institucion.nombre;
+                modalInstitucionSelect.appendChild(modalOption);
+              });
+            } else {
+              console.error('Error al obtener instituciones:', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error al obtener instituciones:', error);
+          });
+      }
+
+      // Función para verificar si ya existe una solicitud para el estudiante
+      function checkExistingSolicitud() {
+        fetch(`https://socialitec2034.pythonanywhere.com/solicitudes`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              const solicitudes = data.data;
+              const solicitud = solicitudes.find(s => s.id_estudiante == idEstudiante);
+              if (solicitud) {
+                // Si ya existe la solicitud, muestra los detalles
+                displaySolicitud(solicitud);
+              } else {
+                // Si no hay solicitud, permite crear una nueva
+                solicitudCreateSection.style.display = 'block';
+                crearSolicitudContainer.style.display = 'block';
+              }
+            } else {
+              console.error('Error al obtener solicitudes:', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error al obtener solicitudes:', error);
+          });
+      }
+
+      // Función para mostrar los detalles de la solicitud existente
+      function displaySolicitud(solicitud) {
+        solicitudInfoSection.innerHTML = `
+          <div class="info-item">
+            <label>Nombre del Estudiante:</label>
+            <div class="info-value">${solicitud.nombre_estudiante}</div>
+          </div>
+          <div class="info-item">
+            <label>Nombre de Institución:</label>
+            <div class="info-value" id="nombre-institucion">${solicitud.nombre_institucion}</div>
+          </div>
+          <div class="info-item">
+            <label>Programa:</label>
+            <div class="info-value">${solicitud.nombre_programa}</div>
+          </div>
+          <div class="info-item">
+            <label>Descripción del Programa:</label>
+            <div class="info-value">${solicitud.descripcion_programa}</div>
+          </div>
+          <div class="info-item">
+            <label>Fecha de Solicitud:</label>
+            <div class="info-value">${new Date(solicitud.fecha_solicitud).toLocaleDateString()}</div>
+          </div>
+          <div class="info-item">
+            <label>Estatus:</label>
+            <div class="info-value status-${solicitud.estatus}">${capitalizeFirstLetter(solicitud.estatus)}</div>
+          </div>
+        `;
+
+        // Condicional para mostrar status_realizacion si estatus es 'aprobada'
+        if (solicitud.estatus === 'aprobada') {
+          solicitudInfoSection.innerHTML += `
+            <div class="info-item">
+              <label>Status Realización:</label>
+              <div class="info-value">${solicitud.status_realizacion || 'N/A'}</div>
+            </div>
+          `;
+        }
+
+        // Botón para editar la solicitud si el estatus es 'pendiente'
+        if (solicitud.estatus === 'pendiente') {
+          solicitudInfoSection.innerHTML += `
+            <div class="info-item">
+              <button class="btn-edit" id="editar-solicitud-btn">Editar Solicitud</button>
+            </div>
+          `;
+          document.getElementById('editar-solicitud-btn').addEventListener('click', function () {
+            editarSolicitud(solicitud);
+          });
+        }
+
+        solicitudInfoSection.style.display = 'block';
+        solicitudCreateSection.style.display = 'none'; // Ocultar la sección de creación si ya existe una solicitud
+        crearSolicitudContainer.style.display = 'none';
+      }
+
+      // Función para capitalizar la primera letra
+      function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+      }
+
+      // Función para editar la solicitud existente
+      function editarSolicitud(solicitud) {
+        // Crear un formulario dinámico para editar la institución
+        solicitudInfoSection.innerHTML += `
+          <div id="editar-solicitud-form" class="info-item" style="flex-direction: column;">
+            <label for="editar-institucion-select"><strong>Cambiar Institución:</strong></label>
+            <select id="editar-institucion-select" class="select-institution">
+              <option value="">-- Selecciona una nueva institución --</option>
+            </select>
+            <div style="margin-top: 10px;">
+              <button class="btn-submit" id="guardar-edicion-btn">Guardar Cambios</button>
+              <button class="btn-cancel" id="cancelar-edicion-btn">Cancelar</button>
+            </div>
+          </div>
+        `;
+
+        const editarInstitucionSelect = document.getElementById('editar-institucion-select');
+        const guardarEdicionBtn = document.getElementById('guardar-edicion-btn');
+        const cancelarEdicionBtn = document.getElementById('cancelar-edicion-btn');
+
+        // Cargar instituciones disponibles en el select de edición
+        fetch('https://socialitec2034.pythonanywhere.com/instituciones') // Cambia la URL si es necesario
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              data.data.forEach(institucion => {
+                const option = document.createElement('option');
+                option.value = institucion.id_institucion;
+                option.textContent = institucion.nombre;
+                editarInstitucionSelect.appendChild(option);
+              });
+              // Preseleccionar la institución actual
+              editarInstitucionSelect.value = solicitud.id_institucion;
+            } else {
+              console.error('Error al obtener instituciones:', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error al obtener instituciones:', error);
+          });
+
+        // Manejar el guardado de la edición
+        guardarEdicionBtn.addEventListener('click', function () {
+          const nuevaInstitucion = editarInstitucionSelect.value;
+          if (!nuevaInstitucion) {
+            alert('Por favor, selecciona una nueva institución.');
+            return;
+          }
+
+          // Confirmación antes de actualizar
+          if (!confirm('¿Estás seguro de que deseas cambiar la institución de tu solicitud?')) {
+            return;
+          }
+
+          // Actualizar la solicitud mediante una petición PUT
+          fetch(`https://socialitec2034.pythonanywhere.com/solicitudes/${solicitud.id_solicitud}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              id_institucion: nuevaInstitucion
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              alert('Solicitud actualizada con éxito.');
+              location.reload(); // Recargar la página para reflejar los cambios
+            } else {
+              alert(data.message || 'Error al actualizar la solicitud.');
+            }
+          })
+          .catch(error => {
+            console.error('Error al actualizar la solicitud:', error);
+          });
+        });
+
+        // Manejar la cancelación de la edición
+        cancelarEdicionBtn.addEventListener('click', function () {
+          document.getElementById('editar-solicitud-form').remove();
+        });
+      }
+
+      // Función para crear una nueva solicitud
+      crearSolicitudBtn.addEventListener('click', function () {
+        const idInstitucion = institucionSelect.value;
+        const fechaSolicitud = new Date().toISOString();
+
+        if (!idInstitucion) {
+          alert('Por favor, selecciona una institución.');
+          return;
+        }
+
+        // Crear solicitud a través de la API
+        fetch('https://socialitec2034.pythonanywhere.com/solicitudes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id_estudiante: idEstudiante,
+            id_institucion: idInstitucion,
+            fecha_solicitud: fechaSolicitud
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            alert('Solicitud creada con éxito.');
+            checkExistingSolicitud(); // Vuelve a verificar si ya existe la solicitud
+          } else {
+            alert(data.message || 'Error al crear solicitud.');
+          }
+        })
+        .catch(error => {
+          console.error('Error al crear la solicitud:', error);
+        });
+      });
+
+      // Funciones para manejar el modal de creación de solicitud
+      abrirModalBtn && abrirModalBtn.addEventListener('click', function () {
+        crearSolicitudModal.style.display = 'block';
+      });
+
+      cerrarModalBtn && cerrarModalBtn.addEventListener('click', function () {
+        crearSolicitudModal.style.display = 'none';
+      });
+
+      window.addEventListener('click', function(event) {
+        if (event.target == crearSolicitudModal) {
+          crearSolicitudModal.style.display = 'none';
+        }
+      });
+
+      modalCrearSolicitudBtn && modalCrearSolicitudBtn.addEventListener('click', function () {
+        const idInstitucion = modalInstitucionSelect.value;
+        const fechaSolicitud = new Date().toISOString();
+
+        if (!idInstitucion) {
+          alert('Por favor, selecciona una institución.');
+          return;
+        }
+
+        // Crear solicitud a través de la API
+        fetch('https://socialitec2034.pythonanywhere.com/solicitudes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id_estudiante: idEstudiante,
+            id_institucion: idInstitucion,
+            fecha_solicitud: fechaSolicitud
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            alert('Solicitud creada con éxito.');
+            crearSolicitudModal.style.display = 'none';
+            checkExistingSolicitud(); // Vuelve a verificar si ya existe la solicitud
+          } else {
+            alert(data.message || 'Error al crear solicitud.');
+          }
+        })
+        .catch(error => {
+          console.error('Error al crear la solicitud:', error);
+        });
+      });
+
+      // Inicializar la página obteniendo los datos del estudiante
+      obtenerEstudiante();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestión de Documentos</title>
+  <style>
+    /* Estilos básicos */
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7fc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      text-align: center;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 900px;
+      width: 100%;
+    }
+    .header {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .message {
+      font-size: 1.2rem;
+      color: #777;
+    }
+    .btn-create {
+      background-color: #3498db;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 5px;
+    }
+    .btn-create:hover {
+      background-color: #2980b9;
+    }
+    .btn-back {
+      background-color: #dc3545;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .btn-back:hover {
+      background-color: #a71d2a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .actions-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 450px;
+      max-width: 90%;
+    }
+    .modal-content h3 {
+      margin-top: 0;
+    }
+    .modal-content form label {
+      display: block;
+      margin-top: 10px;
+    }
+    .modal-content form input,
+    .modal-content form select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    .modal-content form button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Gestión de Documentos</div>
+    <div id="documentos-info">
+      <!-- Aquí se mostrará el mensaje o los documentos disponibles -->
+    </div>
+    <table id="documentos-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha de Subida</th>
+          <th>Status</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filas de documentos dinámicas -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal para Crear Documento -->
+  <div id="documento-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="documento-modal-title">Crear Documento</h3>
+      <form id="documento-form" enctype="multipart/form-data">
+        <input type="hidden" id="documento-id">
+        <input type="hidden" id="documento-solicitud-id" name="id_solicitud">
+        <label for="fecha_subida">Fecha de Subida</label>
+        <input type="date" id="fecha_subida" name="fecha_subida" required>
+        <label for="archivo_documento">Archivo (PDF)</label>
+        <input type="file" id="archivo_documento" name="archivo" accept=".pdf" required>
+        <label for="status_documento">Status</label>
+        <select id="status_documento" name="status">
+          <option value="pendiente">Pendiente</option>
+          <!--<option value="aprobada">Aprobada</option>
+          <option value="rechazada">Rechazada</option>-->
+        </select>
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-documento-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const apiBaseUrl = 'https://socialitec2034.pythonanywhere.com';
+    const documentosApiUrl = `${apiBaseUrl}/documentos`;
+    const solicitudesApiUrl = `${apiBaseUrl}/solicitudes`;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const urlParams = new URLSearchParams(window.top.location.search);
+      const idEstudiante = urlParams.get('id_estudiante');
+
+      if (!idEstudiante) {
+        document.getElementById('documentos-info').innerHTML = `
+          <div class="message">ID del estudiante no encontrado. Por favor, vuelve a intentar.</div>
+        `;
+        return;
+      }
+
+      // Buscar la solicitud asociada al estudiante
+      fetch(`${solicitudesApiUrl}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const solicitudes = data.data;
+            const solicitudEstudiante = solicitudes.find(s => s.id_estudiante == idEstudiante);
+
+            if (!solicitudEstudiante) {
+              document.getElementById('documentos-info').innerHTML = `
+                <div class="message">Aún no tienes ninguna solicitud registrada para el servicio social.</div>
+              `;
+              return;
+            }
+
+            // Verificar si la solicitud está en estado "aceptada" y "en_proceso"
+            if (solicitudEstudiante.estatus === 'aprobada' && solicitudEstudiante.status_realizacion === 'en_progreso') {
+              document.getElementById('documentos-info').innerHTML = `
+                <div class="message">Puedes crear documentos para esta solicitud.</div>
+                <button class="btn-create" id="create-documento-btn">Crear Documento</button>
+              `;
+
+              // Cargar los documentos asociados a la solicitud
+              loadDocumentos(solicitudEstudiante.id_solicitud);
+
+              // Manejo de la creación de documentos
+              document.getElementById('create-documento-btn').addEventListener('click', function () {
+                openCreateDocumentModal(solicitudEstudiante.id_solicitud);
+              });
+            } else {
+              document.getElementById('documentos-info').innerHTML = `
+                <div class="message">No puedes crear documentos para esta solicitud porque no está en estado 'aceptada' o 'en proceso'.</div>
+              `;
+            }
+          } else {
+            document.getElementById('documentos-info').innerHTML = `
+              <div class="message">Error al cargar la solicitud. Por favor, inténtalo de nuevo.</div>
+            `;
+          }
+        })
+        .catch(error => {
+          document.getElementById('documentos-info').innerHTML = `
+            <div class="message">Error al cargar las solicitudes. Por favor, inténtalo de nuevo.</div>
+          `;
+        });
+    });
+
+    // Función para cargar los documentos asociados
+    function loadDocumentos(idSolicitud) {
+      const tableBody = document.querySelector('#documentos-table tbody');
+      tableBody.innerHTML = '<tr><td colspan="4">Cargando documentos...</td></tr>';
+
+      fetch(`${documentosApiUrl}?id_solicitud=${idSolicitud}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            tableBody.innerHTML = '';
+            if (data.data.length === 0) {
+              tableBody.innerHTML = '<tr><td colspan="4">No hay documentos para esta solicitud.</td></tr>';
+            } else {
+              data.data.forEach(documento => {
+                const row = `
+                  <tr data-id="${documento.id_documento}">
+                    <td>${documento.id_documento}</td>
+                    <td>${documento.fecha_subida}</td>
+                    <td>${documento.status}</td>
+                    <td>
+                      <button class="actions-btn" onclick="downloadDocument(${documento.id_documento})">Descargar</button>
+                    </td>
+                  </tr>
+                `;
+                tableBody.innerHTML += row;
+              });
+            }
+          }
+        });
+    }
+
+    // Función para abrir el modal de creación de documentos
+    function openCreateDocumentModal(idSolicitud) {
+      document.getElementById('documento-modal').style.display = 'flex';
+      document.getElementById('documento-solicitud-id').value = idSolicitud;
+    }
+
+    // Descargar documento
+    function downloadDocument(idDocumento) {
+      window.location.href = `${documentosApiUrl}/${idDocumento}/descargar`;
+    }
+
+    // Enviar formulario para crear un documento
+    document.getElementById('documento-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const formData = new FormData(this);
+      const idSolicitud = document.getElementById('documento-solicitud-id').value;
+
+      fetch(documentosApiUrl, {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            document.getElementById('documento-modal').style.display = 'none';
+            loadDocumentos(idSolicitud);
+            alert('Documento creado con éxito');
+          } else {
+            alert('Error al crear documento: ' + data.message);
+          }
+        })
+        .catch(error => alert('Error en la solicitud: ' + error));
+    });
+
+    // Cancelar la creación de un documento
+    document.getElementById('cancel-documento-btn').addEventListener('click', function () {
+      document.getElementById('documento-modal').style.display = 'none';
+    });
+  </script>
+</body>
+</html>

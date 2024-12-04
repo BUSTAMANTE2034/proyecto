@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ver Carta de Liberación</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f7fc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      text-align: center;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 100%;
+    }
+    .header {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .info-item {
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+      color: #555;
+    }
+    .btn-download {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 5px;
+    }
+    .btn-download:hover {
+      background-color: #0056b3;
+    }
+    .btn-back {
+      background-color: #dc3545;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .btn-back:hover {
+      background-color: #a71d2a;
+    }
+    .message {
+      font-size: 1.2rem;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Carta de Liberación</div>
+    <div id="carta-info">
+      <!-- Aquí se cargará dinámicamente la información de la carta -->
+    </div>
+  </div>
+
+  <script>
+    const apiBaseUrl = 'https://socialitec2034.pythonanywhere.com';
+    const cartasApiUrl = `${apiBaseUrl}/cartas_de_liberacion`;
+    const solicitudesApiUrl = `${apiBaseUrl}/solicitudes`;
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const urlParams = new URLSearchParams(window.top.location.search);
+      const idEstudiante = urlParams.get('id_estudiante');
+
+      if (!idEstudiante) {
+        document.getElementById('carta-info').innerHTML = `
+          <div class="message">ID del estudiante no encontrado. Por favor, vuelve a intentar.</div>
+        `;
+        return;
+      }
+
+      // Buscar la solicitud asociada al estudiante
+      fetch(`${solicitudesApiUrl}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const solicitudes = data.data;
+            const solicitudEstudiante = solicitudes.find(s => s.id_estudiante == idEstudiante);
+
+            if (!solicitudEstudiante) {
+              document.getElementById('carta-info').innerHTML = `
+                <div class="message">Aún no has llevado a cabo tu servicio social.</div>
+              `;
+              return;
+            }
+
+            // Buscar la carta asociada a la solicitud
+            fetch(`${cartasApiUrl}?id_solicitud=${solicitudEstudiante.id_solicitud}`)
+              .then(response => response.json())
+              .then(data => {
+                if (data.status === 'success' && data.data.length > 0) {
+                  const carta = data.data[0];
+                  document.getElementById('carta-info').innerHTML = `
+                    <div class="info-item">¿Su carta de liberación del servicio social ya esta lista! </div>
+                    <button class="btn-download" onclick="downloadCarta('${carta.id_carta}')">Descargar Carta</button>
+                  `;
+                } else {
+                  document.getElementById('carta-info').innerHTML = `
+                    <div class="message">Aún no has llevado a cabo tu servicio social.</div>
+                  `;
+                }
+              })
+              .catch(error => {
+                console.error('Error al cargar la carta:', error);
+                document.getElementById('carta-info').innerHTML = `
+                  <div class="message">Error al cargar la información de la carta. Por favor, inténtalo de nuevo.</div>
+                `;
+              });
+          } else {
+            console.error('Error al cargar las solicitudes:', data.message);
+            document.getElementById('carta-info').innerHTML = `
+              <div class="message">Error al cargar la información de la solicitud. Por favor, inténtalo de nuevo.</div>
+            `;
+          }
+        })
+        .catch(error => {
+          console.error('Error al cargar las solicitudes:', error);
+          document.getElementById('carta-info').innerHTML = `
+            <div class="message">Error al cargar la información de la solicitud. Por favor, inténtalo de nuevo.</div>
+          `;
+        });
+    });
+
+    function downloadCarta(cartaId) {
+      window.location.href = `${cartasApiUrl}/${cartaId}/descargar`;
+    }
+  </script>
+</body>
+</html>

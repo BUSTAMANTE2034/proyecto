@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles/tecnm_leon.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>TecNM León - SocialITEC</title>
+    <style>
+      /* General Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        margin: 0;
+        color: #18192e;
+        background-color: #f1f7fe;
+      }
+
+      /* Header */
+      .header {
+        background-color: #002855;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+      }
+
+      .header__logo {
+        display: flex;
+        align-items: center;
+      }
+
+      .header__logo-img {
+        height: 3rem;
+        margin-right: 0.5rem;
+      }
+
+      .header__title {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .header__nav {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .header__nav-link {
+        color: white;
+        text-decoration: none;
+        font-size: 1rem;
+        transition: color 0.3s ease;
+      }
+
+      .header__nav-link:hover,
+      .header__nav-link.active {
+        color: #00509e;
+      }
+
+      /* Main Section */
+      .main {
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .intro,
+      .careers,
+      .facilities,
+      .contact {
+        margin-bottom: 2rem;
+      }
+
+      .intro__title,
+      .careers__title,
+      .facilities__title,
+      .contact__title {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #002855;
+        margin-bottom: 1rem;
+      }
+
+      .intro__description {
+        font-size: 1rem;
+        color: #18192e;
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      /* Lists */
+      .careers__list,
+      .facilities__list,
+      .contact__list {
+        list-style-type: disc;
+        margin: 0 auto;
+        max-width: 600px;
+        text-align: left;
+        padding-left: 1.5rem;
+        line-height: 1.6;
+      }
+
+      /* Footer */
+      .footer {
+        background-color: #002855;
+        color: white;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .footer__nav {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      }
+
+      .footer__nav-link {
+        color: white;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.3s ease;
+      }
+
+      .footer__nav-link:hover {
+        color: #00509e;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header" class="header">
+      <div class="header__logo">
+        <img
+          src="../images/Social ITEC ICON.png"
+          alt="Document Management"
+          class="header__logo-img"
+        />
+        <div class="header__title">SocialITEC</div>
+      </div>
+      <nav class="header__nav">
+        <a href="landing-page.html" class="header__nav-link">HOME</a>
+        <a href="login.html" class="header__nav-link">Iniciar Sesión</a>
+        <a href="social_service.html" class="header__nav-link"
+          >Servicio Social</a
+        >
+        <a href="tecnm_leon.html" class="header__nav-link">TecNM León</a>
+      </nav>
+    </header>
+
+    <main class="main">
+      <img src="../images/image.png" alt="" width="20%" height="5%">
+      <section class="intro">
+        <h1 class="intro__title">Tecnológico Nacional de México Campus León</h1>
+        <p class="intro__description">
+          El TecNM León es una institución pública de educación superior
+          dedicada a formar profesionales en áreas de ingeniería, tecnología y
+          gestión empresarial. Es parte de la red educativa del Tecnológico
+          Nacional de México, la más grande del país.
+        </p>
+      </section>
+
+      <section class="careers">
+        <h2 class="careers__title">Carreras Ofrecidas</h2>
+        <ul class="careers__list">
+          <li>
+            <strong>Ingeniería Industrial:</strong> Enfoque en diseño y
+            optimización de sistemas de producción.
+          </li>
+          <li>
+            <strong>Ingeniería en Gestión Empresarial:</strong> Liderazgo y
+            competitividad en organizaciones.
+          </li>
+          <li>
+            <strong>Ingeniería Electromecánica:</strong> Análisis y
+            mantenimiento de sistemas electromecánicos.
+          </li>
+          <li>
+            <strong>Ingeniería en Sistemas Computacionales:</strong> Desarrollo
+            y gestión de soluciones informáticas.
+          </li>
+          <li>
+            <strong
+              >Ingeniería en Tecnologías de la Información y
+              Comunicaciones:</strong
+            >
+            Diseño y administración de sistemas de comunicación digital.
+          </li>
+        </ul>
+      </section>
+
+      <section class="facilities">
+        <h2 class="facilities__title">Instalaciones</h2>
+        <p>
+          El TecNM León cuenta con dos campus equipados con laboratorios
+          especializados, bibliotecas, áreas deportivas y espacios destinados al
+          desarrollo académico y extracurricular:
+        </p>
+        <ul class="facilities__list">
+          <li>
+            <strong>Campus I:</strong> Av. Tecnológico s/n, Fraccionamiento
+            Industrial Julián de Obregón, 37290 León, Gto.
+          </li>
+          <li>
+            <strong>Campus II:</strong> Blvd. Juan Alonso de Torres Pte. 3542,
+            San José de Piletas, 37316 León, Gto.
+          </li>
+        </ul>
+      </section>
+
+      <section class="contact">
+        <h2 class="contact__title">Contacto</h2>
+        <p>
+          Para más información, puedes comunicarte con el TecNM León a través de
+          los siguientes medios:
+        </p>
+        <ul class="contact__list">
+          <li>
+            <strong>Correo Electrónico:</strong>
+            <a href="mailto:comunicacionydifusion@leon.tecnm.mx"
+              >comunicacionydifusion@leon.tecnm.mx</a
+            >
+          </li>
+          <li><strong>Teléfono:</strong> 477 710 5200 Ext. 1000</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2024 SocialITEC. Todos los derechos reservados.</p>
+      <nav class="footer__nav">
+        <a href="contact.html" class="footer__nav-link">Contacto</a>
+        <a href="about.html" class="footer__nav-link">Sobre Nosotros</a>
+      </nav>
+    </footer>
+  </body>
+</html>

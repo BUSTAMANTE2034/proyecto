@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../styles/about.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>Sobre Nosotros - SocialITEC</title>
+    <style>
+      /* General Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        margin: 0;
+        color: #18192e; /* Texto oscuro */
+        background-color: #f1f7fe; /* Fondo claro */
+      }
+
+      /* Header */
+      .header {
+        background-color: #002855; /* Fondo principal */
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+      }
+
+      .header__logo {
+        display: flex;
+        align-items: center;
+      }
+
+      .header__logo-img {
+        height: 3rem;
+        margin-right: 0.5rem;
+      }
+
+      .header__title {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .header__nav {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .header__nav-link {
+        color: white;
+        text-decoration: none;
+        font-size: 1rem;
+        transition: color 0.3s ease;
+      }
+
+      .header__nav-link:hover,
+      .header__nav-link.active {
+        color: #00509e; /* Hover color */
+      }
+
+      /* Main Section */
+      .main {
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .about,
+      .team,
+      .mission {
+        margin-bottom: 2rem;
+      }
+
+      .about__title,
+      .team__title,
+      .mission__title {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #002855; /* Títulos en color principal */
+        margin-bottom: 1rem;
+      }
+
+      .about__description,
+      .mission__description {
+        font-size: 1.125rem;
+        color: #18192e; /* Texto oscuro */
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      /* Team Section */
+      .team__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+        justify-items: center;
+        margin-top: 1.5rem;
+      }
+
+      .team__member {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .team__member:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .team__member-img {
+        height: 140px;
+        width: 140px;
+        border-radius:50%;
+        margin-bottom: 1rem;
+      }
+
+      .team__member-name {
+        font-size: 1.125rem;
+        font-weight: bold;
+        color: #002855;
+      }
+
+      .team__member-role {
+        font-size: 1rem;
+        color: #00509e;
+      }
+
+      /* Footer */
+      .footer {
+        background-color: #002855; /* Fondo principal */
+        color: white;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .footer__nav {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      }
+
+      .footer__nav-link {
+        color: white;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.3s ease;
+      }
+
+      .footer__nav-link:hover {
+        color: #00509e; /* Hover color */
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header" class="header">
+      <div class="header__logo">
+        <img
+          src="../images/Social ITEC ICON.png"
+          alt="Document Management"
+          class="header__logo-img"
+        />
+        <div class="header__title">SocialITEC</div>
+      </div>
+      <nav class="header__nav">
+        <a href="landing-page.html" class="header__nav-link">HOME</a>
+        <a href="login.html" class="header__nav-link">Iniciar Sesión</a>
+        <a href="social_service.html" class="header__nav-link"
+          >Servicio Social</a
+        >
+        <a href="tecnm_leon.html" class="header__nav-link">TecNM León</a>
+      </nav>
+    </header>
+
+    <main class="main">
+      <section class="about">
+        <h1 class="about__title">Sobre Nosotros</h1>
+        <p class="about__description">
+          SocialITEC es una plataforma desarrollada por estudiantes del
+          Instituto Tecnológico de León con el propósito de simplificar el
+          proceso de gestión del servicio social. Nuestro equipo está conformado
+          por jóvenes apasionados por la tecnología y el desarrollo de
+          soluciones innovadoras.
+        </p>
+      </section>
+
+      <section class="team">
+        <h2 class="team__title">Nuestro Equipo</h2>
+        <div class="team__grid">
+          <div class="team__member">
+            <img
+              src="../images/Eduardo.png"
+              alt="Integrante 1"
+              class="team__member-img"
+            />
+            <h3 class="team__member-name">Eduardo Bustamante</h3>
+            <p class="team__member-role">Líder de Proyecto</p>
+          </div>
+          <div class="team__member">
+            <img
+              src="../images/Jhonatan.jpg"
+              alt="Integrante 2"
+              class="team__member-img"
+            />
+            <h3 class="team__member-name">Jonathan Pérez</h3>
+            <p class="team__member-role">Desarrollador Frontend</p>
+          </div>
+          <div class="team__member">
+            <img
+              src="../images/alberto.jpg"
+              alt="Integrante 3"
+              class="team__member-img"
+            />
+            <h3 class="team__member-name">Alberto Carrillo</h3>
+            <p class="team__member-role">Desarrollador Backend</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mission">
+        <h2 class="mission__title">Nuestra Misión</h2>
+        <p class="mission__description">
+          En SocialITEC, nuestra misión es brindar a los estudiantes y
+          encargados del servicio social herramientas digitales que optimicen y
+          simplifiquen los procesos administrativos, reduciendo tiempos y
+          errores, y aumentando la satisfacción de los usuarios.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>&copy; 2024 SocialITEC. Todos los derechos reservados.</p>
+      <nav class="footer__nav">
+        <a href="contact.html" class="footer__nav-link">Contacto</a>
+        <a href="about.html" class="footer__nav-link">Sobre Nosotros</a>
+      </nav>
+    </footer>
+  </body>
+</html>

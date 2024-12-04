@@ -1,0 +1,25 @@
+Descripción de Componentes
+
+Sistema GSS
+Representa el sistema completo de gestión del servicio social.
+---------------------------------------------------------------------------------------------------
+
+
+
+Interfaz de Usuario (UI)
+
+El componente que permite a los usuarios (estudiantes, encargados, administradores) interactuar con el sistema. Puede incluir formularios, botones y pantallas para mostrar información.
+---------------------------------------------------------------------------------------------------
+
+
+
+Lógica de Aplicación
+
+Contiene la lógica necesaria para manejar las operaciones del sistema, procesar la información y gestionar las interacciones entre la interfaz de usuario y la base de datos.
+---------------------------------------------------------------------------------------------------
+
+
+
+Base de Datos
+
+Almacena todos los datos relevantes del sistema, como información de estudiantes, encargados, solicitudes, documentos, etc.

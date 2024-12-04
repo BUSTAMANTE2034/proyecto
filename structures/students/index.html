@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Alumnos</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <!-- Card Header -->
+    <div class="card-header">
+      <h2>Lista de Alumnos</h2>
+      <div class="header-actions">
+        <input type="text" id="search" placeholder="Buscar alumno...">
+        <button id="search-btn">🔍</button>
+        <button id="create-btn">+ Crear</button>
+      </div>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body">
+      <table id="students-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Matrícula</th>
+            <th>Correo</th>
+            <th>Créditos</th>
+            <th>Horas</th>
+            <th>Estatus</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filas dinámicas generadas por JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal para Crear/Editar Estudiante -->
+  <div id="student-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3 id="modal-title">Crear Alumno</h3>
+      <form id="student-form">
+        <input type="hidden" id="student-id">
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" required>
+        <label for="matricula">Matrícula</label>
+        <input type="text" id="matricula" required>
+        <label for="correo">Correo</label>
+        <input type="email" id="correo" readonly>
+        <!--
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" required>
+        -->
+        <label for="creditos">Créditos</label>
+        <input type="number" id="creditos" required>
+        <label for="horas">Horas</label>
+        <input type="number" id="horas" required>
+        <label for="estatus">Estatus</label>
+        <select id="estatus" required>
+          <option value="pendiente">Pendiente</option>
+          <option value="en_proceso">En Proceso</option>
+          <option value="completado">Completado</option>
+        </select>
+        <button type="submit">Guardar</button>
+        <button type="button" id="cancel-btn">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación -->
+  <div id="delete-confirmation" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Confirmar Eliminación</h3>
+      <p>¿Está seguro de que desea eliminar este alumno?</p>
+      <button id="confirm-delete-btn">Eliminar</button>
+      <button id="cancel-delete-btn">Cancelar</button>
+    </div>
+  </div>
+
+  <script>
+    const apiBaseUrl = 'https://socialitec2034.pythonanywhere.com/estudiantes';
+
+    // Función para cargar y mostrar los estudiantes en la tabla
+    function loadStudents() {
+      $.get(apiBaseUrl, function (response) {
+        if (response.status === 'success') {
+          const students = response.data;
+          const tableBody = $('#students-table tbody');
+          tableBody.empty(); // Limpia la tabla antes de agregar nuevas filas
+
+          // Itera sobre los estudiantes y crea una fila para cada uno
+          students.forEach(student => {
+            const row = `
+              <tr data-id="${student.id_estudiante}">
+                <td>${student.nombre}</td>
+                <td>${student.matricula}</td>
+                <td>${student.correo}</td>
+                <td>${student.creditos_aprobados}</td>
+                <td>${student.horas_completadas}</td>
+                <td>${student.estatus_servicio}</td>
+                <td>
+                  <button class="actions-btn">⋮</button>
+                  <div class="actions-menu" style="display: none;">
+                    <button class="edit-btn">Editar</button>
+                    <button class="delete-btn">Eliminar</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tableBody.append(row);
+          });
+        } else {
+          console.error('Error al obtener los estudiantes:', response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar estudiantes:', textStatus, errorThrown);
+      });
+    }
+
+    // Funciones para manejar la edición y eliminación de estudiantes
+    function openEditModal(studentId) {
+      $.get(`${apiBaseUrl}/${studentId}`, function (response) {
+        if (response.status === 'success') {
+          const student = response.data;
+          // Completa los campos del modal con los datos del estudiante
+          $('#modal-title').text('Editar Alumno');
+          $('#student-id').val(student.id_estudiante);
+          $('#nombre').val(student.nombre);
+          $('#matricula').val(student.matricula);
+          $('#correo').val(student.correo);
+          // $('#password').val(''); // No se muestra la contraseña actual
+          $('#creditos').val(student.creditos_aprobados);
+          $('#horas').val(student.horas_completadas);
+          $('#estatus').val(student.estatus_servicio);
+          $('#student-modal').show();
+
+          // Deshabilita el campo matrícula al editar
+          $('#matricula').prop('readonly', true);
+        } else {
+          console.error('Error al obtener los datos del estudiante:', response.message);
+          alert('Error al obtener los datos del estudiante: ' + response.message);
+        }
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        console.error('Error en la solicitud:', textStatus, errorThrown);
+        alert('Error en la solicitud: ' + textStatus);
+      });
+    }
+
+    function openDeleteConfirmation(studentId) {
+      $('#delete-confirmation').show();
+      $('#confirm-delete-btn').off('click').on('click', function () {
+        $.ajax({
+          url: `${apiBaseUrl}/${studentId}`,
+          type: 'DELETE',
+          success: function (response) {
+            if (response.status === 'success') {
+              $('#delete-confirmation').hide();
+              loadStudents();
+              alert('Estudiante eliminado exitosamente.');
+            } else {
+              console.error('Error al eliminar el estudiante:', response.message);
+              alert('Error al eliminar el estudiante: ' + response.message);
+            }
+          },
+          error: function (jqXHR, textStatus, errorThrown) {
+            console.error('Error al eliminar el estudiante:', textStatus, errorThrown);
+            alert('Error al eliminar el estudiante: ' + textStatus);
+          }
+        });
+      });
+      $('#cancel-delete-btn').on('click', function () {
+        $('#delete-confirmation').hide();
+      });
+    }
+
+    // Función para inicializar la tabla de estudiantes
+    $(document).ready(function () {
+      loadStudents();
+
+      $('#search-btn').on('click', function () {
+        const query = $('#search').val().toLowerCase();
+        $('#students-table tbody tr').filter(function () {
+          $(this).toggle($(this).text().toLowerCase().indexOf(query) > -1);
+        });
+      });
+
+      $('#create-btn').on('click', function () {
+        $('#modal-title').text('Crear Alumno');
+        $('#student-id').val('');
+        $('#nombre').val('');
+        $('#matricula').val('');
+        $('#correo').val('');
+        // $('#password').val('');
+        $('#creditos').val('');
+        $('#horas').val('');
+        $('#estatus').val('pendiente');
+        $('#student-modal').show();
+
+        // Habilita el campo matrícula al crear
+        $('#matricula').prop('readonly', false);
+      });
+
+      $('#cancel-btn').on('click', function () {
+        $('#student-modal').hide();
+      });
+
+      // Evento para autocompletar el correo al cambiar la matrícula
+      $('#matricula').on('input', function () {
+        const matricula = $(this).val();
+        const correo = `${matricula}@leon.tecnm.mx`;
+        $('#correo').val(correo);
+      });
+
+      $('#student-form').on('submit', function (event) {
+        event.preventDefault();
+
+        const studentId = $('#student-id').val();
+        const studentData = {
+          nombre: $('#nombre').val(),
+          matricula: $('#matricula').val(),
+          correo: $('#correo').val(),
+          // contraseña: $('#password').val(), // Si decides agregar la contraseña
+          creditos_aprobados: parseInt($('#creditos').val(), 10),
+          horas_completadas: parseInt($('#horas').val(), 10),
+          estatus_servicio: $('#estatus').val(),
+        };
+
+        // Imprime los datos para verificar
+        console.log('Datos enviados:', studentData);
+
+        if (studentId) {
+          // Actualizar estudiante existente
+          $.ajax({
+            url: `${apiBaseUrl}/${studentId}`,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(studentData),
+            success: function (response) {
+              if (response.status === 'success') {
+                $('#student-modal').hide();
+                loadStudents();
+                alert('Estudiante actualizado exitosamente.');
+              } else {
+                console.error('Error al actualizar el estudiante:', response.message);
+                alert('Error al actualizar el estudiante: ' + response.message);
+              }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        } else {
+          // Crear nuevo estudiante
+          $.ajax({
+            url: apiBaseUrl,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(studentData),
+            success: function (response) {
+              if (response.status === 'success') {
+                $('#student-modal').hide();
+                loadStudents();
+                alert('Estudiante creado exitosamente.');
+              } else {
+                console.error('Error al crear el estudiante:', response.message);
+                alert('Error al crear el estudiante: ' + response.message);
+              }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+              console.error('Error en la solicitud:', textStatus, errorThrown);
+              alert('Error en la solicitud: ' + textStatus);
+            }
+          });
+        }
+      });
+
+      // Eventos para botones en cada fila usando delegación de eventos
+      $('#students-table').on('click', '.actions-btn', function () {
+        $(this).next('.actions-menu').toggle();
+      });
+
+      $('#students-table').on('click', '.edit-btn', function () {
+        const studentId = $(this).closest('tr').data('id');
+        openEditModal(studentId);
+      });
+
+      $('#students-table').on('click', '.delete-btn', function () {
+        const studentId = $(this).closest('tr').data('id');
+        openDeleteConfirmation(studentId);
+      });
+    });
+  </script>
+</body>
+</html>

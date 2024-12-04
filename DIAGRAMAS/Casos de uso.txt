@@ -1,0 +1,32 @@
+Descripción de Casos de Uso
+
+Estudiante
+
+Registrar: Permite a un estudiante registrarse en el sistema.
+Iniciar Sesión: Acceso al sistema con credenciales.
+Solicitar Servicio Social: Crear una nueva solicitud de servicio social.
+Subir Documentos: Subir documentos relacionados con la solicitud.
+Consultar Estado de Solicitud: Verificar el estado actual de su solicitud.
+Solicitar Carta de Liberación: Pedir la carta de liberación una vez aprobada la solicitud.
+---------------------------------------------------------------------------------------------------
+
+
+
+Encargado
+
+Iniciar Sesión: Acceso al sistema con credenciales.
+Revisar Documentos: Acceder a documentos subidos por estudiantes.
+Aprobar/Rechazar Documentos: Evaluar y decidir sobre los documentos presentados.
+Consultar Solicitudes: Ver el estado de todas las solicitudes presentadas.
+---------------------------------------------------------------------------------------------------
+
+
+
+Administrador
+
+Iniciar Sesión: Acceso al sistema con credenciales.
+Gestionar Estudiantes: Añadir, editar o eliminar estudiantes del sistema.
+Gestionar Encargados: Administrar la información de los encargados.
+Gestionar Plantillas: Crear y actualizar plantillas de documentos.
+Gestionar Instituciones: Añadir y administrar las instituciones registradas.
+Consultar Estadísticas: Obtener estadísticas sobre el uso del sistema

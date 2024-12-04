@@ -1,0 +1,118 @@
+/* Estilos Generales */
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .container {
+    display: flex;
+    height: 100vh;
+  }
+  
+  /* Sidebar */
+  .sidebar {
+    background-color: #002855; /* Azul */
+    color: white;
+    width: 240px;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+  }
+  
+  .sidebar__logo {
+    display: flex;
+    align-items: center;
+    padding-left: 1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .sidebar__logo-img {
+    height: 2rem;
+    margin-right: 0.5rem;
+  }
+  
+  .sidebar__title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  }
+  
+  .sidebar__nav {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .sidebar__nav-link {
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+
+  }
+  
+  .sidebar__nav-link:hover,
+  .sidebar__nav-link.active {
+    background-color: #00509E;
+  }
+  
+  /* Mostrar enlaces según el tipo de usuario */
+  .user-encargado .sidebar__nav-link {
+    display: block;
+  }
+  
+  /* Aquí puedes agregar más reglas para otros tipos de usuario */
+  
+  /* Header */
+  .header {
+    background-color: #f3f4f6; /* Gris claro */
+    padding: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .header__user {
+    display: flex;
+    align-items: center;
+  }
+  
+  .header__user-name {
+    font-size: 1rem;
+    margin-right: 1rem;
+    color: #002855;
+    font-weight: bold;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  }
+  
+  .header__logout-button {
+    background-color: #002855; /* Azul */
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .header__logout-button:hover {
+    background-color: #00509E;
+  }
+  
+  /* Main Content */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .main {
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  #main-iframe {
+    width: 100%;
+    height: calc(100vh - 72px); /* Ajusta la altura del iframe restando la altura del header */
+    border: none;
+  }
+  
