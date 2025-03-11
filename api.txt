@@ -1,0 +1,1756 @@
+from flask import Flask, jsonify, request, send_file
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError, DataError
+from flask_cors import CORS
+import os
+from flask import send_from_directory
+from werkzeug.utils import secure_filename
+import logging
+
+app = Flask(__name__)
+# Aplica CORS globalmente
+CORS(app)
+
+# Configuración de la base de datos
+app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql+pymysql://usuario:passwordsocialitec2034.mysql.pythonanywhere-services.com:3306/database'
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+
+# Configuración de los directorios
+UPLOAD_FOLDER = '/home/socialitec2034/plantillas'
+DOCUMENTOS_FOLDER = '/home/socialitec2034/documentos'
+CARTAS_FOLDER = '/home/socialitec2034/cartas'  # Añadir esta línea
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['DOCUMENTOS_FOLDER'] = DOCUMENTOS_FOLDER
+app.config['CARTAS_FOLDER'] = CARTAS_FOLDER  # Añadir esta línea
+
+# Asegurarse de que los directorios existen
+for folder in [UPLOAD_FOLDER, DOCUMENTOS_FOLDER, CARTAS_FOLDER]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+# Configuración de logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+                    handlers=[
+                        logging.FileHandler("debug.log"),
+                        logging.StreamHandler()
+                    ])
+logger = logging.getLogger(__name__)
+
+#MODELS
+class Estudiante(db.Model):
+    __tablename__ = 'estudiantes'
+    id_estudiante = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    matricula = db.Column(db.String(20), unique=True, nullable=False)
+    correo = db.Column(db.String(100), unique=True, nullable=False)
+    contrasena = db.Column(db.String(255), nullable=False)
+    creditos_aprobados = db.Column(db.Integer, nullable=False)
+    horas_completadas = db.Column(db.Integer, default=0)
+    estatus_servicio = db.Column(db.Enum('pendiente', 'en_proceso', 'completado'), default='pendiente')
+    tipo_usuario = db.Column(db.Integer, default=3)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    # Relaciones
+    solicitudes = db.relationship('Solicitud', backref='estudiante', lazy=True)
+
+    '''def set_password(self, password):
+        self.contrasena = generate_password_hash(password)
+
+    def check_password(self, password):
+        # Si la contraseña es la matrícula o coincide con la contraseña almacenada
+        if check_password_hash(self.contrasena, password) or password == self.matricula:
+            return True
+        return False'''
+    def set_password(self, password):
+        self.contrasena = password  # Almacena en texto plano (inseguro)
+
+    def check_password(self, password):
+        return self.contrasena == password
+
+
+class Encargado(db.Model):
+    __tablename__ = 'encargados'
+    id_encargado = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    correo = db.Column(db.String(100), unique=True, nullable=False)
+    contrasena = db.Column(db.String(255), nullable=False)
+    tipo_usuario = db.Column(db.Integer, default=2)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    '''# Relaciones
+    documentos = db.relationship('Documento', backref='encargado', lazy=True)'''
+
+    '''def set_password(self, password):
+        self.contrasena = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.contrasena, password)'''
+    def set_password(self, password):
+        self.contrasena = password  # Almacena en texto plano (inseguro)
+
+    def check_password(self, password):
+        return self.contrasena == password
+
+class Administrador(db.Model):
+    __tablename__ = 'administradores'
+    id_administrador = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    correo = db.Column(db.String(100), unique=True, nullable=False)
+    contrasena = db.Column(db.String(255), nullable=False)
+    tipo_usuario = db.Column(db.Integer, default=1)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    def set_password(self, password):
+        self.contrasena = password
+
+    def check_password(self, password):
+        return self.contrasena == password
+
+
+
+class Institucion(db.Model):
+    __tablename__ = 'instituciones'
+    id_institucion = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    direccion = db.Column(db.String(255), nullable=False)
+    telefono = db.Column(db.String(15))
+    correo = db.Column(db.String(100), unique=True)
+    nombre_programa = db.Column(db.String(100), nullable=False)
+    descripcion_programa = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    # Relaciones
+    responsables = db.relationship('ResponsablePrograma', backref='institucion', lazy=True)
+    solicitudes = db.relationship('Solicitud', backref='institucion', lazy=True)
+
+
+class ResponsablePrograma(db.Model):
+    __tablename__ = 'responsable_programa'
+    id_responsable = db.Column(db.Integer, primary_key=True)
+    id_institucion = db.Column(db.Integer, db.ForeignKey('instituciones.id_institucion'), nullable=False)
+    nombre_responsable = db.Column(db.String(100), nullable=False)
+    cargo = db.Column(db.String(100), nullable=False)
+    rf = db.Column(db.String(20), unique=True, nullable=False)
+    correo = db.Column(db.String(100), unique=True, nullable=False)
+    numero_telefono = db.Column(db.String(15))
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+class Solicitud(db.Model):
+    __tablename__ = 'solicitudes'
+    id_solicitud = db.Column(db.Integer, primary_key=True)
+    id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiantes.id_estudiante'), nullable=False)
+    id_institucion = db.Column(db.Integer, db.ForeignKey('instituciones.id_institucion'), nullable=False)
+    fecha_solicitud = db.Column(db.Date, nullable=False)
+    estatus = db.Column(db.Enum('pendiente', 'aprobada', 'rechazada'), default='pendiente')
+    status_realizacion = db.Column(db.Enum('en_progreso', 'realizado', 'sin_iniciar'), default='sin_iniciar')
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    # Relaciones
+    documentos = db.relationship('Documento', backref='solicitud', lazy=True)
+    cartas = db.relationship('CartaLiberacion', backref='solicitud', lazy=True)
+
+
+class Documento(db.Model):
+    __tablename__ = 'documentos'
+    id_documento = db.Column(db.Integer, primary_key=True)
+    id_solicitud = db.Column(db.Integer, db.ForeignKey('solicitudes.id_solicitud'), nullable=False)
+    fecha_subida = db.Column(db.Date, nullable=False)
+    status = db.Column(db.Enum('aprobada', 'rechazada', 'pendiente'), default='pendiente')
+    ruta_archivo = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+
+
+class CartaLiberacion(db.Model):
+    __tablename__ = 'cartas_de_liberacion'
+    id_carta = db.Column(db.Integer, primary_key=True)
+    id_solicitud = db.Column(db.Integer, db.ForeignKey('solicitudes.id_solicitud'), nullable=False)
+    ruta_carta = db.Column(db.String(255), nullable=True)
+    fecha_emision = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+
+class Plantilla(db.Model):
+    __tablename__ = 'plantillas'
+    id_plantilla = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    ultima_actualizacion = db.Column(db.Date, nullable=False)
+    ruta_archivo = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+#_______________________________________________________________________________________________________________________________________#
+
+
+#ENDPOINTS
+
+##LOGIN
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    correo = data.get('correo')
+    contrasena = data.get('contrasena')
+
+    user = None
+    tipo_usuario = None
+    user_id = None
+
+    # Administrador
+    user = Administrador.query.filter_by(correo=correo).first()
+    if user and user.check_password(contrasena):
+        tipo_usuario = user.tipo_usuario  # 1
+        user_id = user.id_administrador
+        return jsonify({
+            'status': 'success',
+            'message': 'Inicio de sesión exitoso',
+            'tipo_usuario': tipo_usuario,
+            'id_administrador': user_id
+        }), 200
+
+    # Encargado
+    user = Encargado.query.filter_by(correo=correo).first()
+    if user and user.check_password(contrasena):
+        tipo_usuario = user.tipo_usuario  # 2
+        user_id = user.id_encargado
+        return jsonify({
+            'status': 'success',
+            'message': 'Inicio de sesión exitoso',
+            'tipo_usuario': tipo_usuario,
+            'id_encargado': user_id
+        }), 200
+
+    # Estudiante
+    user = Estudiante.query.filter_by(correo=correo).first()
+    if user and user.check_password(contrasena):
+        tipo_usuario = user.tipo_usuario  # 3
+        user_id = user.id_estudiante
+        return jsonify({
+            'status': 'success',
+            'message': 'Inicio de sesión exitoso',
+            'tipo_usuario': tipo_usuario,
+            'id_estudiante': user_id
+        }), 200
+    elif user and contrasena == user.contrasena:
+        # Contraseña inicial es la matrícula
+        tipo_usuario = user.tipo_usuario
+        user_id = user.id_estudiante
+        return jsonify({
+            'status': 'success',
+            'message': 'Inicio de sesión exitoso. Por favor, cambie su contraseña.',
+            'tipo_usuario': tipo_usuario,
+            'id_estudiante': user_id
+        }), 200
+
+    return jsonify({'status': 'error', 'message': 'Correo o contraseña incorrectos'}), 401
+
+
+##ESTUDIANTES
+
+### CREAR
+@app.route('/estudiantes', methods=['POST'])
+def crear_estudiante():
+    data = request.get_json()
+    nombre = data.get('nombre')
+    matricula = data.get('matricula')
+    correo = data.get('correo')
+    contrasena = data.get('contrasena')  # Opcional
+    creditos_aprobados = data.get('creditos_aprobados')
+    horas_completadas = data.get('horas_completadas', 0)
+    estatus_servicio = data.get('estatus_servicio', 'pendiente')
+
+    # Imprimir los datos recibidos para verificar
+    print('Datos recibidos:', data)
+
+    if not nombre or not matricula or not correo or creditos_aprobados is None:
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    # Verificar si ya existe
+    if Estudiante.query.filter_by(correo=correo).first() or Estudiante.query.filter_by(matricula=matricula).first():
+        return jsonify({'status': 'error', 'message': 'El estudiante ya existe'}), 400
+
+    estudiante = Estudiante(
+        nombre=nombre,
+        matricula=matricula,
+        correo=correo,
+        creditos_aprobados=creditos_aprobados,
+        horas_completadas=horas_completadas,
+        estatus_servicio=estatus_servicio
+    )
+    if contrasena:
+        estudiante.set_password(contrasena)
+    else:
+        estudiante.set_password(matricula)  # Contraseña inicial es la matrícula
+
+    db.session.add(estudiante)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'message': 'Estudiante creado exitosamente'}), 201
+
+### LEER
+@app.route('/estudiantes', methods=['GET'])
+def obtener_estudiantes():
+    estudiantes = Estudiante.query.filter_by(deleted_at=None).all()
+    estudiantes_list = [{
+        'id_estudiante': e.id_estudiante,
+        'nombre': e.nombre,
+        'matricula': e.matricula,
+        'correo': e.correo,
+        'creditos_aprobados': e.creditos_aprobados,
+        'horas_completadas': e.horas_completadas,
+        'estatus_servicio': e.estatus_servicio,
+        'tipo_usuario': e.tipo_usuario,
+        'contrasena':e.contrasena
+    } for e in estudiantes]
+    return jsonify({'status': 'success', 'data': estudiantes_list}), 200
+
+
+@app.route('/estudiantes/<int:id_estudiante>', methods=['GET'])
+def obtener_estudiante(id_estudiante):
+    estudiante = Estudiante.query.get(id_estudiante)
+    if estudiante and estudiante.deleted_at is None:
+        estudiante_data = {
+            'id_estudiante': estudiante.id_estudiante,
+            'nombre': estudiante.nombre,
+            'matricula': estudiante.matricula,
+            'correo': estudiante.correo,
+            'creditos_aprobados': estudiante.creditos_aprobados,
+            'horas_completadas': estudiante.horas_completadas,
+            'estatus_servicio': estudiante.estatus_servicio,
+            'tipo_usuario': estudiante.tipo_usuario,
+            'contrasena':estudiante.contrasena
+            # No incluir 'contrasena' por seguridad
+        }
+        return jsonify({'status': 'success', 'data': estudiante_data}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Estudiante no encontrado'}), 404
+
+### ACTUALIZAR
+@app.route('/estudiantes/<int:id_estudiante>', methods=['PUT'])
+def actualizar_estudiante(id_estudiante):
+    estudiante = Estudiante.query.get(id_estudiante)
+    if not estudiante or estudiante.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Estudiante no encontrado'}), 404
+
+    data = request.get_json()
+    nombre = data.get('nombre')
+    correo = data.get('correo')
+    contrasena = data.get('contrasena')
+    creditos_aprobados = data.get('creditos_aprobados')
+    horas_completadas = data.get('horas_completadas')
+    estatus_servicio = data.get('estatus_servicio')
+
+    if nombre:
+        estudiante.nombre = nombre
+    if correo:
+        estudiante.correo = correo
+    if contrasena:
+        estudiante.set_password(contrasena)
+    if creditos_aprobados is not None:
+        estudiante.creditos_aprobados = creditos_aprobados
+    if horas_completadas is not None:
+        estudiante.horas_completadas = horas_completadas
+    if estatus_servicio:
+        estudiante.estatus_servicio = estatus_servicio
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Estudiante actualizado'}), 200
+
+### BORRAR
+@app.route('/estudiantes/<int:id_estudiante>', methods=['DELETE'])
+def eliminar_estudiante(id_estudiante):
+    estudiante = Estudiante.query.get(id_estudiante)
+    if not estudiante or estudiante.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Estudiante no encontrado'}), 404
+
+    if estudiante.solicitudes:
+        return jsonify({'status': 'error', 'message': 'No se puede eliminar el estudiante porque tiene solicitudes asociadas'}), 400
+
+    estudiante.deleted_at = db.func.current_timestamp()
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Estudiante eliminado'}), 200
+
+
+##ENCARGADOS
+###CREAR
+@app.route('/encargados', methods=['POST'])
+def crear_encargado():
+    data = request.get_json()
+    nombre = data.get('nombre')
+    correo = data.get('correo')
+    contrasena = data.get('contrasena')
+
+    if not nombre or not correo or not contrasena:
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    if Encargado.query.filter_by(correo=correo).first():
+        return jsonify({'status': 'error', 'message': 'El correo ya está registrado'}), 400
+
+    encargado = Encargado(
+        nombre=nombre,
+        correo=correo
+    )
+    encargado.set_password(contrasena)
+
+    try:
+        db.session.add(encargado)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Encargado creado exitosamente'}), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###LEER
+@app.route('/encargados', methods=['GET'])
+def obtener_encargados():
+    encargados = Encargado.query.filter_by(deleted_at=None).all()
+    encargados_list = [{
+        'id_encargado': e.id_encargado,
+        'nombre': e.nombre,
+        'correo': e.correo,
+        'tipo_usuario': e.tipo_usuario,
+        'contrasena':e.contrasena
+    } for e in encargados]
+    return jsonify({'status': 'success', 'data': encargados_list}), 200
+
+###LEER UNO POR ID
+@app.route('/encargados/<int:id_encargado>', methods=['GET'])
+def obtener_encargado(id_encargado):
+    encargado = Encargado.query.get(id_encargado)
+    if encargado and encargado.deleted_at is None:
+        encargado_data = {
+            'id_encargado': encargado.id_encargado,
+            'nombre': encargado.nombre,
+            'correo': encargado.correo,
+            'tipo_usuario': encargado.tipo_usuario,
+            'contrasena': encargado.contrasena  # No incluir la contraseña por seguridad
+        }
+        return jsonify({'status': 'success', 'data': encargado_data}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Encargado no encontrado'}), 404
+
+###ACTUALIZAR
+@app.route('/encargados/<int:id_encargado>', methods=['PUT'])
+def actualizar_encargado(id_encargado):
+    encargado = Encargado.query.get(id_encargado)
+    if not encargado or encargado.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Encargado no encontrado'}), 404
+
+    data = request.get_json()
+    nombre = data.get('nombre')
+    correo = data.get('correo')
+    contrasena = data.get('contrasena')
+
+    if nombre:
+        encargado.nombre = nombre
+    if correo:
+        if Encargado.query.filter(Encargado.correo == correo, Encargado.id_encargado != id_encargado).first():
+            return jsonify({'status': 'error', 'message': 'El correo ya está registrado por otro usuario'}), 400
+        encargado.correo = correo
+    if contrasena:
+        encargado.set_password(contrasena)
+
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Encargado actualizado'}), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###ELIMINAR
+@app.route('/encargados/<int:id_encargado>', methods=['DELETE'])
+def eliminar_encargado(id_encargado):
+    encargado = Encargado.query.get(id_encargado)
+    if not encargado or encargado.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Encargado no encontrado'}), 404
+
+
+
+    encargado.deleted_at = db.func.current_timestamp()
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Encargado eliminado'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+#.........................................................................................................................................#
+
+##ADMINISTRADORES
+###CREAR
+@app.route('/administradores', methods=['POST'])
+def crear_administrador():
+    data = request.get_json()
+    nombre = data.get('nombre')
+    correo = data.get('correo')
+    contrasena = data.get('contrasena')
+
+    if not nombre or not correo or not contrasena:
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    if Administrador.query.filter_by(correo=correo).first():
+        return jsonify({'status': 'error', 'message': 'El correo ya está registrado'}), 400
+
+    administrador = Administrador(
+        nombre=nombre,
+        correo=correo
+    )
+    administrador.set_password(contrasena)
+
+    try:
+        db.session.add(administrador)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Administrador creado exitosamente'}), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###LEER
+@app.route('/administradores', methods=['GET'])
+def obtener_administradores():
+    administradores = Administrador.query.filter_by(deleted_at=None).all()
+    administradores_list = [{
+        'id_administrador': a.id_administrador,
+        'nombre': a.nombre,
+        'correo': a.correo,
+        'tipo_usuario': a.tipo_usuario,
+        'contrasena':a.contrasena
+    } for a in administradores]
+    return jsonify({'status': 'success', 'data': administradores_list}), 200
+
+### LEER UNO POR ID
+@app.route('/administradores/<int:id_administrador>', methods=['GET'])
+def obtener_administrador(id_administrador):
+    administrador = Administrador.query.get(id_administrador)
+    if administrador and administrador.deleted_at is None:
+        administrador_data = {
+            'id_administrador': administrador.id_administrador,
+            'nombre': administrador.nombre,
+            'correo': administrador.correo,
+            'tipo_usuario': administrador.tipo_usuario,
+            # No incluir la contraseña en la respuesta por razones de seguridad
+        }
+        return jsonify({'status': 'success', 'data': administrador_data}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Administrador no encontrado'}), 404
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+@app.route('/instituciones/<int:id_institucion>', methods=['GET'])
+def obtener_institucion(id_institucion):
+    institucion = Institucion.query.get(id_institucion)
+    if institucion and institucion.deleted_at is None:
+        institucion_data = {
+            'id_institucion': institucion.id_institucion,
+            'nombre': institucion.nombre,
+            'direccion': institucion.direccion,
+            'telefono': institucion.telefono,
+            'correo': institucion.correo,
+            'nombre_programa': institucion.nombre_programa,
+            'descripcion_programa': institucion.descripcion_programa
+        }
+        return jsonify({'status': 'success', 'data': institucion_data}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Institución no encontrada'}), 404
+
+
+###ACTUALIZAR
+@app.route('/administradores/<int:id_administrador>', methods=['PUT'])
+def actualizar_administrador(id_administrador):
+    administrador = Administrador.query.get(id_administrador)
+    if not administrador or administrador.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Administrador no encontrado'}), 404
+
+    data = request.get_json()
+    nombre = data.get('nombre')
+    correo = data.get('correo')
+    contrasena = data.get('contrasena')
+
+    if nombre:
+        administrador.nombre = nombre
+    if correo:
+        if Administrador.query.filter(Administrador.correo == correo, Administrador.id_administrador != id_administrador).first():
+            return jsonify({'status': 'error', 'message': 'El correo ya está registrado por otro usuario'}), 400
+        administrador.correo = correo
+    if contrasena:
+        administrador.set_password(contrasena)
+
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Administrador actualizado'}), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###ELIMINAR
+@app.route('/administradores/<int:id_administrador>', methods=['DELETE'])
+def eliminar_administrador(id_administrador):
+    administrador = Administrador.query.get(id_administrador)
+    if not administrador or administrador.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Administrador no encontrado'}), 404
+
+    administrador.deleted_at = db.func.current_timestamp()
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Administrador eliminado'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+#.........................................................................................................................................#
+##INSTITUCIÓN
+###CREAR
+@app.route('/instituciones', methods=['POST'])
+def crear_institucion():
+    data = request.get_json()
+    nombre = data.get('nombre')
+    direccion = data.get('direccion')
+    nombre_programa = data.get('nombre_programa')
+    descripcion_programa = data.get('descripcion_programa')
+    correo = data.get('correo')
+    telefono = data.get('telefono')
+
+    if not nombre or not direccion or not nombre_programa or not descripcion_programa:
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    if correo and Institucion.query.filter_by(correo=correo).first():
+        return jsonify({'status': 'error', 'message': 'El correo ya está registrado'}), 400
+
+    institucion = Institucion(
+        nombre=nombre,
+        direccion=direccion,
+        nombre_programa=nombre_programa,
+        descripcion_programa=descripcion_programa,
+        correo=correo,
+        telefono=telefono
+    )
+
+    try:
+        db.session.add(institucion)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Institución creada exitosamente'}), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###LEER
+@app.route('/instituciones', methods=['GET'])
+def obtener_instituciones():
+    instituciones = Institucion.query.filter_by(deleted_at=None).all()
+    instituciones_list = [{
+        'id_institucion': i.id_institucion,
+        'nombre': i.nombre,
+        'direccion': i.direccion,
+        'telefono': i.telefono,
+        'correo': i.correo,
+        'nombre_programa': i.nombre_programa,
+        'descripcion_programa': i.descripcion_programa
+    } for i in instituciones]
+    return jsonify({'status': 'success', 'data': instituciones_list}), 200
+
+###ACTUALIZAR
+@app.route('/instituciones/<int:id_institucion>', methods=['PUT'])
+def actualizar_institucion(id_institucion):
+    institucion = Institucion.query.get(id_institucion)
+    if not institucion or institucion.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Institución no encontrada'}), 404
+
+    data = request.get_json()
+    nombre = data.get('nombre')
+    direccion = data.get('direccion')
+    nombre_programa = data.get('nombre_programa')
+    descripcion_programa = data.get('descripcion_programa')
+    correo = data.get('correo')
+    telefono = data.get('telefono')
+
+    if nombre:
+        institucion.nombre = nombre
+    if direccion:
+        institucion.direccion = direccion
+    if nombre_programa:
+        institucion.nombre_programa = nombre_programa
+    if descripcion_programa:
+        institucion.descripcion_programa = descripcion_programa
+    if correo:
+        if Institucion.query.filter(Institucion.correo == correo, Institucion.id_institucion != id_institucion).first():
+            return jsonify({'status': 'error', 'message': 'El correo ya está registrado por otra institución'}), 400
+        institucion.correo = correo
+    if telefono:
+        institucion.telefono = telefono
+
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Institución actualizada'}), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###ELIMINAR
+@app.route('/instituciones/<int:id_institucion>', methods=['DELETE'])
+def eliminar_institucion(id_institucion):
+    institucion = Institucion.query.get(id_institucion)
+    if not institucion or institucion.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Institución no encontrada'}), 404
+
+    # Verificar integridad referencial
+    if institucion.solicitudes or institucion.responsables:
+        return jsonify({'status': 'error', 'message': 'No se puede eliminar la institución porque tiene solicitudes o responsables asociados'}), 400
+
+    institucion.deleted_at = db.func.current_timestamp()
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Institución eliminada'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+#.........................................................................................................................................#
+##RESPONSABLE_PROGRAMA
+###CREAR
+@app.route('/responsables', methods=['POST'])
+def crear_responsable():
+    data = request.get_json()
+    id_institucion = data.get('id_institucion')
+    nombre_responsable = data.get('nombre_responsable')
+    cargo = data.get('cargo')
+    rf = data.get('rf')
+    correo = data.get('correo')
+    numero_telefono = data.get('numero_telefono')
+
+    if not id_institucion or not nombre_responsable or not cargo or not rf or not correo:
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    if ResponsablePrograma.query.filter_by(correo=correo).first() or ResponsablePrograma.query.filter_by(rf=rf).first():
+        return jsonify({'status': 'error', 'message': 'El correo o RF ya están registrados'}), 400
+
+    institucion = Institucion.query.get(id_institucion)
+    if not institucion or institucion.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Institución no encontrada'}), 404
+
+    responsable = ResponsablePrograma(
+        id_institucion=id_institucion,
+        nombre_responsable=nombre_responsable,
+        cargo=cargo,
+        rf=rf,
+        correo=correo,
+        numero_telefono=numero_telefono
+    )
+
+    try:
+        db.session.add(responsable)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Responsable creado exitosamente'}), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###LEER
+@app.route('/responsables', methods=['GET'])
+def obtener_responsables():
+    responsables = ResponsablePrograma.query.filter_by(deleted_at=None).all()
+    responsables_list = [{
+        'id_responsable': r.id_responsable,
+        'id_institucion': r.id_institucion,
+        'nombre_institucion': r.institucion.nombre if r.institucion else None,
+        'nombre_responsable': r.nombre_responsable,
+        'cargo': r.cargo,
+        'rf': r.rf,
+        'correo': r.correo,
+        'numero_telefono': r.numero_telefono
+    } for r in responsables]
+    return jsonify({'status': 'success', 'data': responsables_list}), 200
+
+@app.route('/responsables/<int:id_responsable>', methods=['GET'])
+def obtener_responsable(id_responsable):
+    responsable = ResponsablePrograma.query.get(id_responsable)
+    if responsable and responsable.deleted_at is None:
+        responsable_data = {
+            'id_responsable': responsable.id_responsable,
+            'id_institucion': responsable.id_institucion,
+            'nombre_institucion': responsable.institucion.nombre if responsable.institucion else None,
+            'nombre_responsable': responsable.nombre_responsable,
+            'cargo': responsable.cargo,
+            'rf': responsable.rf,
+            'correo': responsable.correo,
+            'numero_telefono': responsable.numero_telefono
+        }
+        return jsonify({'status': 'success', 'data': responsable_data}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Responsable no encontrado'}), 404
+
+
+###ACTUALIZAR
+@app.route('/responsables/<int:id_responsable>', methods=['PUT'])
+def actualizar_responsable(id_responsable):
+    responsable = ResponsablePrograma.query.get(id_responsable)
+    if not responsable or responsable.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Responsable no encontrado'}), 404
+
+    data = request.get_json()
+    nombre_responsable = data.get('nombre_responsable')
+    cargo = data.get('cargo')
+    rf = data.get('rf')
+    correo = data.get('correo')
+    numero_telefono = data.get('numero_telefono')
+    id_institucion = data.get('id_institucion')
+
+    if nombre_responsable:
+        responsable.nombre_responsable = nombre_responsable
+    if cargo:
+        responsable.cargo = cargo
+    if rf:
+        if ResponsablePrograma.query.filter(ResponsablePrograma.rf == rf, ResponsablePrograma.id_responsable != id_responsable).first():
+            return jsonify({'status': 'error', 'message': 'El RF ya está registrado por otro responsable'}), 400
+        responsable.rf = rf
+    if correo:
+        if ResponsablePrograma.query.filter(ResponsablePrograma.correo == correo, ResponsablePrograma.id_responsable != id_responsable).first():
+            return jsonify({'status': 'error', 'message': 'El correo ya está registrado por otro responsable'}), 400
+        responsable.correo = correo
+    if numero_telefono:
+        responsable.numero_telefono = numero_telefono
+    if id_institucion:
+        institucion = Institucion.query.get(id_institucion)
+        if not institucion or institucion.deleted_at:
+            return jsonify({'status': 'error', 'message': 'Institución no encontrada'}), 404
+        responsable.id_institucion = id_institucion
+
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Responsable actualizado'}), 200
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###ELIMINAR
+@app.route('/responsables/<int:id_responsable>', methods=['DELETE'])
+def eliminar_responsable(id_responsable):
+    responsable = ResponsablePrograma.query.get(id_responsable)
+    if not responsable or responsable.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Responsable no encontrado'}), 404
+
+    responsable.deleted_at = db.func.current_timestamp()
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Responsable eliminado'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+#.........................................................................................................................................#
+##SOLICITUDES
+###CREAR
+@app.route('/solicitudes', methods=['POST'])
+def crear_solicitud():
+    data = request.get_json()
+    id_estudiante = data.get('id_estudiante')
+    id_institucion = data.get('id_institucion')
+    fecha_solicitud = data.get('fecha_solicitud')
+
+    if not id_estudiante or not id_institucion or not fecha_solicitud:
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    estudiante = Estudiante.query.get(id_estudiante)
+    institucion = Institucion.query.get(id_institucion)
+
+    if not estudiante or estudiante.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Estudiante no encontrado'}), 404
+    if not institucion or institucion.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Institución no encontrada'}), 404
+
+    solicitud_existente = Solicitud.query.filter_by(id_estudiante=id_estudiante, id_institucion=id_institucion, deleted_at=None).first()
+    if solicitud_existente:
+        return jsonify({'status': 'error', 'message': 'Ya existe una solicitud para este estudiante en esta institución'}), 400
+
+    solicitud = Solicitud(
+        id_estudiante=id_estudiante,
+        id_institucion=id_institucion,
+        fecha_solicitud=fecha_solicitud
+    )
+
+    try:
+        db.session.add(solicitud)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Solicitud creada exitosamente'}), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###LEER
+@app.route('/solicitudes', methods=['GET'])
+def obtener_solicitudes():
+    solicitudes = Solicitud.query.filter_by(deleted_at=None).all()
+    solicitudes_list = [{
+        'id_solicitud': s.id_solicitud,
+        'id_estudiante': s.id_estudiante,
+        'nombre_estudiante': s.estudiante.nombre if s.estudiante else None,
+        'id_institucion': s.id_institucion,
+        'nombre_institucion': s.institucion.nombre if s.institucion else None,
+        'nombre_programa': s.institucion.nombre_programa if s.institucion else None,
+        'descripcion_programa': s.institucion.descripcion_programa if s.institucion else None,
+        'fecha_solicitud': s.fecha_solicitud.isoformat(),
+        'estatus': s.estatus,
+        'status_realizacion': s.status_realizacion,
+        'documentos': [{
+            'id_documento': doc.id_documento,
+            'ruta_archivo': doc.ruta_archivo,
+            'fecha_subida': doc.fecha_subida.isoformat(),
+            'status': doc.status
+        } for doc in s.documentos if doc.deleted_at is None],
+        'cartas_de_liberacion': [{
+            'id_carta': carta.id_carta,
+            'ruta_carta': carta.ruta_carta,
+            'fecha_emision': carta.fecha_emision.isoformat()
+        } for carta in s.cartas if carta.deleted_at is None]
+    } for s in solicitudes]
+    return jsonify({'status': 'success', 'data': solicitudes_list}), 200
+
+
+# Configuración del logger
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+@app.route('/solicitudes/<int:id_solicitud>', methods=['GET'])
+def obtener_solicitud_por_id(id_solicitud):
+    try:
+        solicitud = Solicitud.query.filter_by(id_solicitud=id_solicitud, deleted_at=None).first()
+
+        if not solicitud:
+            logger.error(f'Solicitud no encontrada: id_solicitud={id_solicitud}')
+            return jsonify({'status': 'error', 'message': 'Solicitud no encontrada'}), 404
+
+        # Serializar los documentos asociados
+        documentos = [{
+            'id_documento': doc.id_documento,
+            'ruta_archivo': doc.ruta_archivo,
+            'fecha_subida': doc.fecha_subida.isoformat(),
+            'status': doc.status,
+            'created_at': doc.created_at.isoformat() if doc.created_at else None,
+            'updated_at': doc.updated_at.isoformat() if doc.updated_at else None,
+            'deleted_at': doc.deleted_at.isoformat() if doc.deleted_at else None
+        } for doc in solicitud.documentos if doc.deleted_at is None]
+
+        # Serializar las cartas de liberación asociadas
+        cartas = [{
+            'id_carta': carta.id_carta,
+            'ruta_carta': carta.ruta_carta,
+            'fecha_emision': carta.fecha_emision.isoformat(),
+            'created_at': carta.created_at.isoformat() if carta.created_at else None,
+            'updated_at': carta.updated_at.isoformat() if carta.updated_at else None,
+            'deleted_at': carta.deleted_at.isoformat() if carta.deleted_at else None
+        } for carta in solicitud.cartas if carta.deleted_at is None]
+
+        solicitud_data = {
+            'id_solicitud': solicitud.id_solicitud,
+            'id_estudiante': solicitud.id_estudiante,
+            'nombre_estudiante': solicitud.estudiante.nombre if solicitud.estudiante else None,
+            'id_institucion': solicitud.id_institucion,
+            'nombre_institucion': solicitud.institucion.nombre if solicitud.institucion else None,
+            'fecha_solicitud': solicitud.fecha_solicitud.isoformat(),
+            'estatus': solicitud.estatus,
+            'status_realizacion': solicitud.status_realizacion,
+            'created_at': solicitud.created_at.isoformat() if solicitud.created_at else None,
+            'updated_at': solicitud.updated_at.isoformat() if solicitud.updated_at else None,
+            'deleted_at': solicitud.deleted_at.isoformat() if solicitud.deleted_at else None,
+            'documentos': documentos,
+            'cartas_de_liberacion': cartas
+        }
+
+        return jsonify({'status': 'success', 'data': solicitud_data}), 200
+
+    except Exception as e:
+        logger.error(f'Error al obtener la solicitud: {e}')
+        return jsonify({'status': 'error', 'message': 'Error al obtener la solicitud'}), 500
+
+###ACTUALIZAR
+### ACTUALIZAR
+@app.route('/solicitudes/<int:id_solicitud>', methods=['PUT'])
+def actualizar_solicitud(id_solicitud):
+    solicitud = Solicitud.query.get(id_solicitud)
+    if not solicitud or solicitud.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Solicitud no encontrada'}), 404
+
+    data = request.get_json()
+    estatus = data.get('estatus')
+    status_realizacion = data.get('status_realizacion')
+    id_institucion = data.get('id_institucion')  # Nuevo campo para actualizar la institución
+
+    # Actualizar estatus si está presente
+    if estatus:
+        if estatus not in ['pendiente', 'aprobada', 'rechazada']:
+            return jsonify({'status': 'error', 'message': 'Estatus inválido'}), 400
+        solicitud.estatus = estatus
+
+    # Actualizar status_realizacion si está presente
+    if status_realizacion:
+        if status_realizacion not in ['en_progreso', 'realizado', 'sin_iniciar']:
+            return jsonify({'status': 'error', 'message': 'Status de realización inválido'}), 400
+        solicitud.status_realizacion = status_realizacion
+
+    # Actualizar id_institucion si está presente y el estatus permite la edición
+    if id_institucion and solicitud.estatus == 'pendiente':
+        # Verificar que la nueva institución exista
+        institucion = Institucion.query.get(id_institucion)
+        if not institucion or institucion.deleted_at:
+            return jsonify({'status': 'error', 'message': 'Institución no encontrada'}), 404
+
+        # Verificar que no exista otra solicitud para el mismo estudiante y la nueva institución
+        solicitud_existente = Solicitud.query.filter_by(
+            id_estudiante=solicitud.id_estudiante,
+            id_institucion=id_institucion,
+            deleted_at=None
+        ).first()
+        if solicitud_existente and solicitud_existente.id_solicitud != id_solicitud:
+            return jsonify({'status': 'error', 'message': 'Ya existe una solicitud para este estudiante en esta institución'}), 400
+
+        solicitud.id_institucion = id_institucion
+
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Solicitud actualizada'}), 200
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+#.........................................................................................................................................#
+##DOCUMENTOS
+# Función para validar archivos
+ALLOWED_EXTENSIONS = {'pdf'}
+
+def allowed_file(filename):
+    """
+    Verifica si el archivo tiene una extensión permitida.
+
+    Args:
+        filename (str): Nombre del archivo.
+
+    Returns:
+        bool: True si la extensión está permitida, False de lo contrario.
+    """
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Endpoint para crear documento
+@app.route('/documentos', methods=['POST'])
+def crear_documento():
+    id_solicitud = request.form.get('id_solicitud')
+    fecha_subida = request.form.get('fecha_subida')
+    archivo = request.files.get('archivo')
+    status = request.form.get('status', 'pendiente')
+
+    # Log de los datos recibidos
+    logger.debug(f'Recibido id_solicitud: {id_solicitud}')
+    logger.debug(f'Recibido fecha_subida: {fecha_subida}')
+    logger.debug(f'Recibido archivo: {archivo.filename if archivo else "No archivo"}')
+    logger.debug(f'Recibido status: {status}')
+
+    # Validación de campos obligatorios
+    if not id_solicitud or not fecha_subida or not archivo:
+        logger.error('Faltan datos obligatorios: id_solicitud, fecha_subida o archivo.')
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    # Validación del tipo de archivo
+    if not allowed_file(archivo.filename):
+        logger.error(f'Archivo no permitido: {archivo.filename}')
+        return jsonify({'status': 'error', 'message': 'Archivo no permitido. Solo se permiten archivos PDF.'}), 400
+
+    # Verificar existencia de la solicitud
+    solicitud = Solicitud.query.get(id_solicitud)
+    if not solicitud or solicitud.deleted_at:
+        logger.error(f'Solicitud no encontrada: id_solicitud={id_solicitud}')
+        return jsonify({'status': 'error', 'message': 'Solicitud no encontrada'}), 404
+
+    try:
+        # Crear el documento sin ruta_archivo
+        documento = Documento(
+            id_solicitud=id_solicitud,
+            fecha_subida=fecha_subida,
+            status=status
+        )
+        db.session.add(documento)
+        db.session.flush()  # Obtiene id_documento sin realizar commit
+
+        id_documento = documento.id_documento
+        logger.debug(f'ID del documento creado: {id_documento}')
+
+        # Definir la carpeta para la solicitud
+        carpeta_solicitud = os.path.join(app.config['DOCUMENTOS_FOLDER'], str(id_solicitud))
+        if not os.path.exists(carpeta_solicitud):
+            os.makedirs(carpeta_solicitud)
+            logger.debug(f'Carpeta creada: {carpeta_solicitud}')
+
+        # Definir el nombre y la ruta del archivo
+        nombre_archivo = secure_filename(f"{id_documento}.pdf")
+        ruta_archivo = os.path.join(str(id_solicitud), nombre_archivo)
+        logger.debug(f'Ruta del archivo: {ruta_archivo}')
+
+        # Guardar el archivo en el sistema de archivos
+        try:
+            archivo.save(os.path.join(app.config['DOCUMENTOS_FOLDER'], ruta_archivo))
+            logger.debug(f'Archivo guardado en: {ruta_archivo}')
+        except Exception as e:
+            logger.error(f'Error al guardar el archivo: {e}')
+            db.session.rollback()
+            return jsonify({'status': 'error', 'message': 'Error al guardar el archivo'}), 500
+
+        # Asignar la ruta_archivo al documento
+        documento.ruta_archivo = ruta_archivo
+
+        # Commit final para guardar la ruta_archivo
+        db.session.commit()
+
+        logger.info(f'Documento creado exitosamente: id_documento={id_documento}')
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Documento creado exitosamente',
+            'id_documento': id_documento
+        }), 201
+
+    except IntegrityError as ie:
+        db.session.rollback()
+        logger.error(f'Error de integridad de datos: {ie.orig}')
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError as de:
+        db.session.rollback()
+        logger.error(f'Datos inválidos: {de.orig}')
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Error al crear el documento: {e}')
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# Endpoint para obtener todos los documentos
+@app.route('/documentos', methods=['GET'])
+def obtener_documentos():
+    try:
+        id_solicitud = request.args.get('id_solicitud', type=int)
+        if id_solicitud:
+            documentos = Documento.query.filter_by(id_solicitud=id_solicitud, deleted_at=None).all()
+        else:
+            documentos = Documento.query.filter_by(deleted_at=None).all()
+
+        documentos_data = [{
+            'id_documento': doc.id_documento,
+            'id_solicitud': doc.id_solicitud,
+            'fecha_subida': doc.fecha_subida.strftime('%Y-%m-%d'),
+            'status': doc.status,
+            'ruta_archivo': doc.ruta_archivo,
+            'created_at': doc.created_at.strftime('%Y-%m-%d %H:%M:%S') if doc.created_at else None,
+            'updated_at': doc.updated_at.strftime('%Y-%m-%d %H:%M:%S') if doc.updated_at else None,
+            'deleted_at': doc.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if doc.deleted_at else None
+        } for doc in documentos]
+        return jsonify({'status': 'success', 'data': documentos_data}), 200
+    except Exception as e:
+        logger.error(f'Error al obtener los documentos: {e}')
+        return jsonify({'status': 'error', 'message': 'Error al obtener los documentos'}), 500
+
+
+# Endpoint para obtener un documento específico
+@app.route('/documentos/<int:id_documento>', methods=['GET'])
+def obtener_documento(id_documento):
+    documento = Documento.query.get(id_documento)
+    if documento and documento.deleted_at is None:
+        documento_data = {
+            'id_documento': documento.id_documento,
+            'id_solicitud': documento.id_solicitud,
+            'fecha_subida': documento.fecha_subida.isoformat(),
+            'status': documento.status,
+            'ruta_archivo': documento.ruta_archivo
+        }
+        return jsonify({'status': 'success', 'data': documento_data}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Documento no encontrado'}), 404
+
+# Endpoint para descargar un documento
+@app.route('/documentos/<int:id_documento>/descargar', methods=['GET'])
+def descargar_documento(id_documento):
+    try:
+        documento = Documento.query.get_or_404(id_documento)
+        if documento.deleted_at:
+            return jsonify({'status': 'error', 'message': 'Documento no encontrado.'}), 404
+
+        archivo_path = os.path.join(app.config['DOCUMENTOS_FOLDER'], documento.ruta_archivo)
+        if not os.path.exists(archivo_path):
+            return jsonify({'status': 'error', 'message': 'Archivo no encontrado en el servidor.'}), 404
+
+        return send_file(archivo_path, as_attachment=True)
+    except Exception as e:
+        logger.error(f'Error al descargar el documento: {e}')
+        return jsonify({'status': 'error', 'message': 'Error al descargar el documento.'}), 500
+
+# Endpoint para actualizar un documento
+@app.route('/documentos/<int:id_documento>', methods=['PUT'])
+def actualizar_documento(id_documento):
+    documento = Documento.query.get(id_documento)
+    if not documento or documento.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Documento no encontrado'}), 404
+
+    data = request.form
+    status = data.get('status')
+    archivo = request.files.get('archivo')
+
+    if status:
+        if status not in ['aprobada', 'rechazada', 'pendiente']:
+            return jsonify({'status': 'error', 'message': 'Estatus inválido'}), 400
+        documento.status = status
+
+    if archivo:
+        if not allowed_file(archivo.filename):
+            return jsonify({'status': 'error', 'message': 'Archivo no permitido. Solo se permiten archivos PDF.'}), 400
+        try:
+            # Definir la ruta del archivo existente
+            ruta_archivo_existente = os.path.join(app.config['DOCUMENTOS_FOLDER'], documento.ruta_archivo)
+            if os.path.exists(ruta_archivo_existente):
+                os.remove(ruta_archivo_existente)
+
+            # Definir la carpeta de la solicitud
+            carpeta_solicitud = os.path.dirname(documento.ruta_archivo)
+            carpeta_absoluta = os.path.join(app.config['DOCUMENTOS_FOLDER'], carpeta_solicitud)
+
+            # Asegurarse de que la carpeta existe
+            if not os.path.exists(carpeta_absoluta):
+                os.makedirs(carpeta_absoluta)
+
+            # Definir el nombre y la ruta del nuevo archivo
+            nombre_archivo = secure_filename(f"{id_documento}.pdf")
+            nueva_ruta_archivo = os.path.join(carpeta_solicitud, nombre_archivo)
+
+            # Guardar el nuevo archivo
+            archivo.save(os.path.join(app.config['DOCUMENTOS_FOLDER'], nueva_ruta_archivo))
+
+            # Actualizar la ruta_archivo en la base de datos
+            documento.ruta_archivo = nueva_ruta_archivo
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'status': 'error', 'message': f'Error al actualizar el archivo: {str(e)}'}), 500
+
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Documento actualizado'}), 200
+    except DataError:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# Endpoint para eliminar un documento
+@app.route('/documentos/<int:id_documento>', methods=['DELETE'])
+def eliminar_documento(id_documento):
+    documento = Documento.query.get(id_documento)
+    if not documento or documento.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Documento no encontrado'}), 404
+
+    try:
+        # Definir la ruta completa del archivo
+        ruta_archivo_completa = os.path.join(app.config['DOCUMENTOS_FOLDER'], documento.ruta_archivo)
+
+        # Eliminar el archivo del sistema de archivos
+        if os.path.exists(ruta_archivo_completa):
+            os.remove(ruta_archivo_completa)
+
+        # Marcar el documento como eliminado
+        documento.deleted_at = db.func.current_timestamp()
+        db.session.commit()
+
+        return jsonify({'status': 'success', 'message': 'Documento eliminado'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'Error al eliminar el documento: {str(e)}'}), 500
+
+#.........................................................................................................................................#
+##CARTAS LIBERACIÓN
+###CREAR
+@app.route('/cartas_de_liberacion', methods=['POST'])
+def crear_carta_liberacion():
+    id_solicitud = request.form.get('id_solicitud', type=int)
+    fecha_emision = request.form.get('fecha_emision')
+    archivo = request.files.get('archivo')
+
+    # Log de los datos recibidos
+    logger.debug(f'Recibido id_solicitud: {id_solicitud}')
+    logger.debug(f'Recibido fecha_emision: {fecha_emision}')
+    logger.debug(f'Recibido archivo: {archivo.filename if archivo else "No archivo"}')
+
+    # Validación de campos obligatorios
+    if not id_solicitud or not fecha_emision or not archivo:
+        logger.error('Faltan datos obligatorios: id_solicitud, fecha_emision o archivo.')
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    # Validación del tipo de archivo
+    if not allowed_file(archivo.filename):
+        logger.error(f'Archivo no permitido: {archivo.filename}')
+        return jsonify({'status': 'error', 'message': 'Archivo no permitido. Solo se permiten archivos PDF.'}), 400
+
+    # Verificar existencia de la solicitud
+    solicitud = Solicitud.query.get(id_solicitud)
+    if not solicitud or solicitud.deleted_at:
+        logger.error(f'Solicitud no encontrada: id_solicitud={id_solicitud}')
+        return jsonify({'status': 'error', 'message': 'Solicitud no encontrada'}), 404
+
+    try:
+        # Crear la carta sin ruta_carta
+        carta = CartaLiberacion(
+            id_solicitud=id_solicitud,
+            fecha_emision=fecha_emision
+        )
+        db.session.add(carta)
+        db.session.flush()  # Obtiene id_carta sin realizar commit
+
+        id_carta = carta.id_carta
+        logger.debug(f'ID de la carta creada: {id_carta}')
+
+        # Definir la carpeta para la solicitud
+        carpeta_solicitud = os.path.join(app.config['CARTAS_FOLDER'], str(id_solicitud))
+        if not os.path.exists(carpeta_solicitud):
+            os.makedirs(carpeta_solicitud)
+            logger.debug(f'Carpeta creada: {carpeta_solicitud}')
+
+        # Definir el nombre y la ruta del archivo
+        nombre_archivo = secure_filename(f"{id_carta}.pdf")
+        ruta_carta = os.path.join(str(id_solicitud), nombre_archivo)
+        logger.debug(f'Ruta de la carta: {ruta_carta}')
+
+        # Guardar el archivo en el sistema de archivos
+        try:
+            archivo.save(os.path.join(app.config['CARTAS_FOLDER'], ruta_carta))
+            logger.debug(f'Archivo guardado en: {ruta_carta}')
+        except Exception as e:
+            logger.error(f'Error al guardar el archivo: {e}')
+            db.session.rollback()
+            return jsonify({'status': 'error', 'message': 'Error al guardar el archivo'}), 500
+
+        # Asignar la ruta_carta a la carta
+        carta.ruta_carta = ruta_carta
+
+        # Commit final para guardar la ruta_carta
+        db.session.commit()
+
+        logger.info(f'Carta de liberación creada exitosamente: id_carta={id_carta}')
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Carta de liberación creada exitosamente',
+            'id_carta': id_carta
+        }), 201
+
+    except IntegrityError as ie:
+        db.session.rollback()
+        logger.error(f'Error de integridad de datos: {ie.orig}')
+        return jsonify({'status': 'error', 'message': 'Error de integridad de datos'}), 400
+    except DataError as de:
+        db.session.rollback()
+        logger.error(f'Datos inválidos: {de.orig}')
+        return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Error al crear la carta de liberación: {e}')
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+###LEER
+@app.route('/cartas_de_liberacion', methods=['GET'])
+def obtener_cartas_liberacion():
+    try:
+        id_solicitud = request.args.get('id_solicitud', type=int)
+        if id_solicitud:
+            cartas = CartaLiberacion.query.filter_by(id_solicitud=id_solicitud, deleted_at=None).all()
+        else:
+            cartas = CartaLiberacion.query.filter_by(deleted_at=None).all()
+
+        cartas_data = [{
+            'id_carta': carta.id_carta,
+            'id_solicitud': carta.id_solicitud,
+            'fecha_emision': carta.fecha_emision.strftime('%Y-%m-%d'),
+            'ruta_carta': carta.ruta_carta,
+            'created_at': carta.created_at.strftime('%Y-%m-%d %H:%M:%S') if carta.created_at else None,
+            'updated_at': carta.updated_at.strftime('%Y-%m-%d %H:%M:%S') if carta.updated_at else None,
+            'deleted_at': carta.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if carta.deleted_at else None
+        } for carta in cartas]
+        return jsonify({'status': 'success', 'data': cartas_data}), 200
+    except Exception as e:
+        logger.error(f'Error al obtener las cartas de liberación: {e}')
+        return jsonify({'status': 'error', 'message': 'Error al obtener las cartas de liberación'}), 500
+
+@app.route('/cartas_de_liberacion/<int:id_carta>', methods=['GET'])
+def obtener_carta_liberacion(id_carta):
+    try:
+        carta = CartaLiberacion.query.get(id_carta)
+        if carta and carta.deleted_at is None:
+            carta_data = {
+                'id_carta': carta.id_carta,
+                'id_solicitud': carta.id_solicitud,
+                'fecha_emision': carta.fecha_emision.isoformat(),
+                'ruta_carta': carta.ruta_carta,
+                'created_at': carta.created_at.strftime('%Y-%m-%d %H:%M:%S') if carta.created_at else None,
+                'updated_at': carta.updated_at.strftime('%Y-%m-%d %H:%M:%S') if carta.updated_at else None,
+                'deleted_at': carta.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if carta.deleted_at else None
+            }
+            return jsonify({'status': 'success', 'data': carta_data}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Carta de liberación no encontrada'}), 404
+    except Exception as e:
+        logger.error(f'Error al obtener la carta de liberación: {e}')
+        return jsonify({'status': 'error', 'message': 'Error al obtener la carta de liberación'}), 500
+
+
+###ACTUALIZAR
+@app.route('/cartas_de_liberacion/<int:id_carta>', methods=['PUT'])
+def actualizar_carta_liberacion(id_carta):
+    try:
+        carta = CartaLiberacion.query.get(id_carta)
+        if not carta or carta.deleted_at:
+            return jsonify({'status': 'error', 'message': 'Carta de liberación no encontrada'}), 404
+
+        data = request.form
+        fecha_emision = data.get('fecha_emision')
+        archivo = request.files.get('archivo')
+
+        if fecha_emision:
+            carta.fecha_emision = fecha_emision
+
+        if archivo:
+            if not allowed_file(archivo.filename):
+                return jsonify({'status': 'error', 'message': 'Archivo no permitido. Solo se permiten archivos PDF.'}), 400
+            try:
+                # Definir la ruta del archivo existente
+                ruta_archivo_existente = os.path.join(app.config['CARTAS_FOLDER'], carta.ruta_carta)
+                if os.path.exists(ruta_archivo_existente):
+                    os.remove(ruta_archivo_existente)
+
+                # Definir la carpeta de la solicitud
+                carpeta_solicitud = os.path.dirname(carta.ruta_carta)
+                carpeta_absoluta = os.path.join(app.config['CARTAS_FOLDER'], carpeta_solicitud)
+
+                # Asegurarse de que la carpeta existe
+                if not os.path.exists(carpeta_absoluta):
+                    os.makedirs(carpeta_absoluta)
+
+                # Definir el nombre y la ruta del nuevo archivo
+                nombre_archivo = secure_filename(f"{id_carta}.pdf")
+                nueva_ruta_archivo = os.path.join(carpeta_solicitud, nombre_archivo)
+
+                # Guardar el nuevo archivo
+                archivo.save(os.path.join(app.config['CARTAS_FOLDER'], nueva_ruta_archivo))
+
+                # Actualizar la ruta_carta en la base de datos
+                carta.ruta_carta = nueva_ruta_archivo
+
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'status': 'error', 'message': f'Error al actualizar el archivo: {str(e)}'}), 500
+
+        try:
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Carta de liberación actualizada'}), 200
+        except DataError:
+            db.session.rollback()
+            return jsonify({'status': 'error', 'message': 'Datos inválidos'}), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Error al actualizar la carta de liberación: {e}')
+        return jsonify({'status': 'error', 'message': 'Error al actualizar la carta de liberación'}), 500
+
+
+###ELIMINAR
+@app.route('/cartas_de_liberacion/<int:id_carta>', methods=['DELETE'])
+def eliminar_carta_liberacion(id_carta):
+    try:
+        carta = CartaLiberacion.query.get(id_carta)
+        if not carta or carta.deleted_at:
+            return jsonify({'status': 'error', 'message': 'Carta de liberación no encontrada'}), 404
+
+        try:
+            # Definir la ruta completa del archivo
+            ruta_archivo_completa = os.path.join(app.config['CARTAS_FOLDER'], carta.ruta_carta)
+
+            # Eliminar el archivo del sistema de archivos
+            if os.path.exists(ruta_archivo_completa):
+                os.remove(ruta_archivo_completa)
+
+            # Marcar la carta como eliminada
+            carta.deleted_at = db.func.current_timestamp()
+            db.session.commit()
+
+            return jsonify({'status': 'success', 'message': 'Carta de liberación eliminada'}), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f'Error al eliminar la carta de liberación: {e}')
+            return jsonify({'status': 'error', 'message': f'Error al eliminar la carta de liberación: {str(e)}'}), 500
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Error al eliminar la carta de liberación: {e}')
+        return jsonify({'status': 'error', 'message': 'Error al eliminar la carta de liberación'}), 500
+
+
+
+@app.route('/cartas_de_liberacion/<int:id_carta>/descargar', methods=['GET'])
+def descargar_carta_liberacion(id_carta):
+    try:
+        carta = CartaLiberacion.query.get_or_404(id_carta)
+        if carta.deleted_at:
+            return jsonify({'status': 'error', 'message': 'Carta de liberación no encontrada.'}), 404
+
+        archivo_path = os.path.join(app.config['CARTAS_FOLDER'], carta.ruta_carta)
+        if not os.path.exists(archivo_path):
+            return jsonify({'status': 'error', 'message': 'Archivo no encontrado en el servidor.'}), 404
+
+        return send_file(archivo_path, as_attachment=True)
+    except Exception as e:
+        logger.error(f'Error al descargar la carta de liberación: {e}')
+        return jsonify({'status': 'error', 'message': 'Error al descargar la carta de liberación.'}), 500
+
+
+#.........................................................................................................................................#
+
+##PLANTILLAS
+###CREAR
+@app.route('/plantillas', methods=['POST'])
+def crear_plantilla():
+    data = request.form
+    nombre = data.get('nombre')
+    ultima_actualizacion = data.get('ultima_actualizacion')
+    archivo = request.files.get('archivo')
+
+    if not nombre or not ultima_actualizacion or not archivo:
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    # Asegurarse de que el archivo tenga un nombre seguro
+    filename = secure_filename(archivo.filename)
+
+    # Ruta completa para guardar el archivo
+    ruta_plantilla = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    try:
+        # Guardar el archivo en la ruta especificada
+        archivo.save(ruta_plantilla)
+
+        # Crear la plantilla en la base de datos
+        plantilla = Plantilla(
+            nombre=nombre,
+            ultima_actualizacion=ultima_actualizacion,
+            ruta_archivo=filename  # Guardar solo el nombre del archivo en la base de datos
+        )
+
+        db.session.add(plantilla)
+        db.session.commit()
+
+        return jsonify({'status': 'success', 'message': 'Plantilla creada exitosamente'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###LEER
+@app.route('/plantillas', methods=['GET'])
+def obtener_plantillas():
+    plantillas = Plantilla.query.filter_by(deleted_at=None).all()
+    plantillas_list = [{
+        'id_plantilla': p.id_plantilla,
+        'nombre': p.nombre,
+        'ultima_actualizacion': p.ultima_actualizacion.isoformat(),
+        'ruta_archivo': p.ruta_archivo
+    } for p in plantillas]
+    return jsonify({'status': 'success', 'data': plantillas_list}), 200
+
+@app.route('/plantillas/<int:id_plantilla>', methods=['GET'])
+def obtener_plantilla_por_id(id_plantilla):
+    plantilla = Plantilla.query.filter_by(id_plantilla=id_plantilla, deleted_at=None).first()
+    if plantilla:
+        plantilla_data = {
+            'id_plantilla': plantilla.id_plantilla,
+            'nombre': plantilla.nombre,
+            'ultima_actualizacion': plantilla.ultima_actualizacion.isoformat(),
+            'ruta_archivo': plantilla.ruta_archivo
+        }
+        return jsonify({'status': 'success', 'data': plantilla_data}), 200
+    else:
+        return jsonify({'status': 'error', 'message': 'Plantilla no encontrada'}), 404
+
+###ACTUALIZAR
+@app.route('/plantillas/<int:id_plantilla>', methods=['PUT'])
+def actualizar_plantilla(id_plantilla):
+    # Obtener la plantilla existente
+    plantilla = Plantilla.query.get(id_plantilla)
+    if not plantilla or plantilla.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Plantilla no encontrada'}), 404
+
+    # Obtener los nuevos datos del formulario
+    data = request.form
+    nombre = data.get('nombre')
+    ultima_actualizacion = data.get('ultima_actualizacion')
+    archivo = request.files.get('archivo')
+
+    if not nombre or not ultima_actualizacion or not archivo:
+        return jsonify({'status': 'error', 'message': 'Faltan datos obligatorios'}), 400
+
+    # Eliminar el archivo anterior si existe
+    if plantilla.ruta_archivo:
+        ruta_plantilla_anterior = os.path.join(app.config['UPLOAD_FOLDER'], plantilla.ruta_archivo)
+        if os.path.exists(ruta_plantilla_anterior):
+            try:
+                os.remove(ruta_plantilla_anterior)
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': f'Error al eliminar el archivo anterior: {str(e)}'}), 500
+
+    # Guardar el nuevo archivo
+    ruta_plantilla_nueva = f'{archivo.filename}'
+    archivo.save(os.path.join(app.config['UPLOAD_FOLDER'], ruta_plantilla_nueva))
+
+    # Actualizar los campos de la plantilla
+    plantilla.nombre = nombre
+    plantilla.ultima_actualizacion = ultima_actualizacion
+    plantilla.ruta_archivo = ruta_plantilla_nueva
+
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Plantilla actualizada exitosamente'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+###ELIMINAR
+@app.route('/plantillas/<int:id_plantilla>', methods=['DELETE'])
+def eliminar_plantilla(id_plantilla):
+    plantilla = Plantilla.query.get(id_plantilla)
+
+    if not plantilla or plantilla.deleted_at:
+        return jsonify({'status': 'error', 'message': 'Plantilla no encontrada'}), 404
+
+    # Obtener la ruta del archivo
+    ruta_plantilla = os.path.join(app.config['UPLOAD_FOLDER'], plantilla.ruta_archivo)
+
+    # Eliminar el archivo del sistema de archivos
+    if os.path.exists(ruta_plantilla):
+        try:
+            os.remove(ruta_plantilla)
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Error al eliminar el archivo: {str(e)}'}), 500
+
+    # Marcar la plantilla como eliminada
+    plantilla.deleted_at = db.func.current_timestamp()
+
+    try:
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Plantilla eliminada exitosamente'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+# Ruta para descargar el archivo por ID
+@app.route('/plantillas/download/<int:id>', methods=['GET'])
+def download_file(id):
+    # Buscar la plantilla por ID
+    plantilla = Plantilla.query.filter_by(id_plantilla=id, deleted_at=None).first()
+
+    if plantilla:
+        # Obtener la ruta del archivo desde la base de datos
+        file_path = plantilla.ruta_archivo
+        # Definir el directorio base donde se almacenan los archivos
+        directory = "/home/socialitec2034/plantillas"
+
+        try:
+            # Usar send_from_directory para enviar el archivo
+            return send_from_directory(directory, file_path, as_attachment=True)
+        except FileNotFoundError:
+            return jsonify({'status': 'error', 'message': 'Archivo no encontrado'}), 404
+    else:
+        return jsonify({'status': 'error', 'message': 'Plantilla no encontrada'}), 404
+
+#.........................................................................................................................................#
+
+
+# Endpoint para listar las tablas disponibles
+@app.route('/db_tables', methods=['GET'])
+def list_tables():
+    try:
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        return jsonify({'status': 'success', 'tables': tables}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run()
+
+@app.route('/')
+def hello_world():
+    return 'Hello from Flask!'
+
